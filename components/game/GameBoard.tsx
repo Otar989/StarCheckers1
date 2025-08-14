@@ -192,7 +192,7 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
           ? "bg-gradient-to-br from-slate-950 via-gray-900 to-black"
           : theme === "system"
             ? "bg-gradient-to-br from-slate-900 via-purple-900 to-indigo-900"
-            : "bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50"
+            : "bg-gradient-to-br from-blue-100 via-indigo-200 to-purple-300"
       }`}
       style={{
         paddingTop: "max(env(safe-area-inset-top), 60px)",
@@ -210,7 +210,7 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
               ? "bg-gradient-to-br from-blue-600/20 to-purple-600/20"
               : theme === "system"
                 ? "bg-gradient-to-br from-purple-600/20 to-indigo-600/20"
-                : "bg-gradient-to-br from-blue-300/30 to-purple-300/30"
+                : "bg-gradient-to-br from-blue-400/40 to-purple-500/40"
           }`}
         />
         <div
@@ -219,7 +219,7 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
               ? "bg-gradient-to-br from-purple-600/20 to-pink-600/20"
               : theme === "system"
                 ? "bg-gradient-to-br from-indigo-600/20 to-pink-600/20"
-                : "bg-gradient-to-br from-purple-300/30 to-pink-300/30"
+                : "bg-gradient-to-br from-purple-500/40 to-pink-400/40"
           }`}
         />
 
@@ -231,7 +231,7 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
                 ? "linear-gradient(120deg, transparent 20%, rgba(59, 130, 246, 0.1) 40%, rgba(147, 51, 234, 0.1) 60%, transparent 80%)"
                 : theme === "system"
                   ? "linear-gradient(120deg, transparent 20%, rgba(147, 51, 234, 0.2) 40%, rgba(59, 130, 246, 0.2) 60%, transparent 80%)"
-                  : "linear-gradient(120deg, transparent 20%, rgba(59, 130, 246, 0.2) 40%, rgba(147, 51, 234, 0.2) 60%, transparent 80%)",
+                  : "linear-gradient(120deg, transparent 20%, rgba(59, 130, 246, 0.3) 40%, rgba(147, 51, 234, 0.3) 60%, transparent 80%)",
             animation: "moveWave 10s ease-in-out infinite alternate",
           }}
         />
@@ -239,7 +239,9 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
         {Array.from({ length: 8 }).map((_, i) => (
           <div
             key={i}
-            className={`absolute w-1.5 h-1.5 rounded-full blur-sm ${theme === "dark" ? "bg-white/10" : theme === "system" ? "bg-purple-100/10" : "bg-black/10"}`}
+            className={`absolute w-1.5 h-1.5 rounded-full blur-sm ${
+              theme === "dark" ? "bg-white/10" : theme === "system" ? "bg-purple-100/10" : "bg-indigo-600/20"
+            }`}
             style={{
               left: `${20 + Math.random() * 60}%`,
               top: `${20 + Math.random() * 60}%`,
@@ -255,7 +257,7 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
               ? "bg-gradient-to-b from-blue-400/20 via-transparent to-purple-400/20"
               : theme === "system"
                 ? "bg-gradient-to-b from-indigo-400/20 via-transparent to-purple-400/20"
-                : "bg-gradient-to-b from-blue-600/20 via-transparent to-purple-600/20"
+                : "bg-gradient-to-b from-blue-600/30 via-transparent to-purple-600/30"
           }`}
           style={{
             animation: "shimmer 6s ease-in-out infinite alternate",
@@ -271,7 +273,7 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
               ? "bg-white/5 border-white/10 hover:bg-white/10 text-white/90 shadow-black/20"
               : theme === "system"
                 ? "bg-white/10 border-purple-300/20 hover:bg-white/15 text-white/90 shadow-black/20"
-                : "bg-white/20 border-white/30 hover:bg-white/30 text-black/80 shadow-black/10"
+                : "bg-white/60 border-white/70 hover:bg-white/80 text-gray-800 shadow-indigo-200/30"
           }`}
         >
           <ArrowLeft className="w-4 h-4" />
@@ -284,7 +286,7 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
               ? "bg-black/20 border-white/10"
               : theme === "system"
                 ? "bg-purple-900/30 border-purple-300/20"
-                : "bg-white/20 border-white/30"
+                : "bg-white/60 border-white/70"
           }`}
         >
           <h2
@@ -293,14 +295,14 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
                 ? "from-blue-400 to-purple-400"
                 : theme === "system"
                   ? "from-purple-300 to-indigo-300"
-                  : "from-blue-600 to-purple-600"
+                  : "from-blue-700 to-purple-700"
             }`}
           >
             StarCheckers
           </h2>
           <p
             className={`text-xs ${
-              theme === "dark" ? "text-white/60" : theme === "system" ? "text-purple-200/70" : "text-black/60"
+              theme === "dark" ? "text-white/60" : theme === "system" ? "text-purple-200/70" : "text-gray-700"
             }`}
           >
             {mode === "bot" &&
@@ -317,7 +319,7 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
               ? "bg-white/5 border-white/10 hover:bg-white/10 text-white/90"
               : theme === "system"
                 ? "bg-white/10 border-purple-300/20 hover:bg-white/15 text-white/90"
-                : "bg-white/20 border-white/30 hover:bg-white/30 text-black/80"
+                : "bg-white/60 border-white/70 hover:bg-white/80 text-gray-800"
           }`}
         >
           <RotateCcw className="w-4 h-4" />
@@ -354,7 +356,7 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
                 ? "bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-900/50 border-white/10"
                 : theme === "system"
                   ? "bg-gradient-to-br from-purple-800/40 via-indigo-800/30 to-slate-900/50 border-purple-300/20"
-                  : "bg-gradient-to-br from-white/40 via-blue-50/30 to-indigo-100/40 border-white/40"
+                  : "bg-gradient-to-br from-white/70 via-blue-50/60 to-indigo-100/70 border-indigo-300/60"
             }`}
             style={{
               transform: "perspective(1000px) rotateX(5deg)",
@@ -367,7 +369,7 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
                   ? "bg-gradient-to-br from-amber-900/30 via-orange-900/20 to-red-900/30 border border-white/5"
                   : theme === "system"
                     ? "bg-gradient-to-br from-purple-800/30 via-indigo-800/20 to-slate-800/30 border border-purple-300/10"
-                    : "bg-gradient-to-br from-amber-100/40 via-orange-100/30 to-red-100/40 border border-white/30"
+                    : "bg-gradient-to-br from-amber-200/60 via-orange-200/50 to-red-200/60 border border-amber-300/50"
               }`}
               style={{
                 transform: "translateZ(10px)",
@@ -409,7 +411,7 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
               ? "bg-black/30 border-white/10"
               : theme === "system"
                 ? "bg-purple-900/30 border-purple-300/20"
-                : "bg-white/30 border-white/40"
+                : "bg-white/70 border-indigo-300/50"
           }`}
         >
           <div
@@ -421,7 +423,7 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
           />
           <p
             className={`text-xs md:text-sm font-semibold whitespace-nowrap ${
-              theme === "dark" ? "text-white/90" : theme === "system" ? "text-purple-100/90" : "text-black/90"
+              theme === "dark" ? "text-white/90" : theme === "system" ? "text-purple-100/90" : "text-gray-800"
             }`}
           >
             {isAIThinking ? (
@@ -442,7 +444,7 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
                 ? "bg-gradient-to-r from-green-600/30 to-emerald-600/30 border-green-400/30 text-white"
                 : theme === "system"
                   ? "bg-gradient-to-r from-green-500/30 to-emerald-500/30 border-green-300/30 text-white"
-                  : "bg-gradient-to-r from-green-400/40 to-emerald-400/40 border-green-400/50 text-black"
+                  : "bg-gradient-to-r from-green-400/60 to-emerald-400/60 border-green-500/70 text-green-900"
             }`}
           >
             <p className="font-bold text-xs md:text-sm whitespace-nowrap">
@@ -459,12 +461,12 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
               ? "bg-black/20 border-white/10"
               : theme === "system"
                 ? "bg-purple-900/20 border-purple-300/20"
-                : "bg-white/20 border-white/30"
+                : "bg-white/60 border-indigo-300/50"
           }`}
         >
           <p
             className={`text-xs mb-1 md:mb-2 ${
-              theme === "dark" ? "text-white/60" : theme === "system" ? "text-purple-200/50" : "text-black/40"
+              theme === "dark" ? "text-white/60" : theme === "system" ? "text-purple-200/50" : "text-gray-600"
             }`}
           >
             Взятые:
@@ -485,7 +487,7 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
             ) : (
               <p
                 className={`text-xs italic ${
-                  theme === "dark" ? "text-white/40" : theme === "system" ? "text-purple-200/50" : "text-black/40"
+                  theme === "dark" ? "text-white/40" : theme === "system" ? "text-purple-200/50" : "text-gray-500"
                 }`}
               >
                 Пока нет взятых фигур

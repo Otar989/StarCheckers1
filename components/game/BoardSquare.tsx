@@ -59,10 +59,10 @@ export function BoardSquare({
     return isDarkSquare
       ? isDarkTheme
         ? "bg-gradient-to-br from-slate-700/80 via-slate-600/60 to-slate-800/90"
-        : "bg-gradient-to-br from-amber-200/80 via-orange-100/60 to-red-200/90"
+        : "bg-gradient-to-br from-amber-300/90 via-orange-200/80 to-red-300/90"
       : isDarkTheme
         ? "bg-gradient-to-br from-slate-500/60 via-slate-400/40 to-slate-600/80"
-        : "bg-gradient-to-br from-amber-50/90 via-yellow-50/70 to-orange-50/90"
+        : "bg-gradient-to-br from-amber-50/95 via-yellow-50/90 to-orange-50/95"
   }
 
   const getBorderColors = () => {
@@ -80,8 +80,8 @@ export function BoardSquare({
         : "bg-gradient-to-br from-slate-600/98 via-slate-700/95 to-slate-800/98"
     } else {
       return pieceColor === "white"
-        ? "bg-gradient-to-br from-white/98 via-blue-50/95 to-indigo-50/98"
-        : "bg-gradient-to-br from-slate-500/98 via-slate-600/95 to-slate-700/98"
+        ? "bg-gradient-to-br from-white/98 via-blue-50/95 to-indigo-100/98 border-2 border-indigo-200/60"
+        : "bg-gradient-to-br from-slate-600/98 via-slate-700/95 to-slate-800/98 border-2 border-slate-500/60"
     }
   }
 
@@ -96,8 +96,8 @@ export function BoardSquare({
         : "bg-gradient-to-br from-slate-300/50 to-slate-500/50"
     } else {
       return pieceColor === "white"
-        ? "bg-gradient-to-br from-blue-200/50 to-purple-200/50"
-        : "bg-gradient-to-br from-amber-300/50 to-orange-400/50"
+        ? "bg-gradient-to-br from-blue-300/60 to-purple-300/60"
+        : "bg-gradient-to-br from-amber-400/60 to-orange-500/60"
     }
   }
 
@@ -137,7 +137,7 @@ export function BoardSquare({
                 ? "bg-gradient-to-br from-white/40 via-transparent to-purple/10"
                 : isDarkTheme
                   ? "bg-gradient-to-br from-white/8 via-transparent to-black/15"
-                  : "bg-gradient-to-br from-white/60 via-transparent to-black/8"
+                  : "bg-gradient-to-br from-white/80 via-transparent to-black/15"
             }
           `}
           style={{ transform: "translateZ(2px)" }}
@@ -150,7 +150,7 @@ export function BoardSquare({
                 ? "bg-gradient-to-b from-white/60 to-transparent"
                 : isDarkTheme
                   ? "bg-gradient-to-b from-white/15 to-transparent"
-                  : "bg-gradient-to-b from-white/80 to-transparent"
+                  : "bg-gradient-to-b from-white/90 to-transparent"
             }
           `}
           style={{ transform: "translateZ(1px)" }}
@@ -169,7 +169,7 @@ export function BoardSquare({
                 ? "bg-gradient-to-br from-emerald-300/95 to-teal-400/95 border-emerald-200/90 shadow-emerald-300/70"
                 : isDarkTheme
                   ? "bg-gradient-to-br from-emerald-400/90 to-teal-500/90 border-emerald-300/80 shadow-emerald-400/60"
-                  : "bg-gradient-to-br from-emerald-300/95 to-teal-400/95 border-emerald-200/90 shadow-emerald-300/70"
+                  : "bg-gradient-to-br from-emerald-400/95 to-teal-500/95 border-emerald-300/90 shadow-emerald-400/70"
             }
           `}
           />
@@ -184,7 +184,7 @@ export function BoardSquare({
       {/* Game piece */}
       {piece && (
         <div
-          className={`relative w-4/5 h-4/5 group transform-gpu`}
+          className={`relative group transform-gpu ${piece.color === "white" ? "w-3/4 h-3/4" : "w-4/5 h-4/5"}`}
           style={{
             transform: `translateZ(25px) ${isSelected ? "scale(1.15)" : "scale(1)"}`,
             transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
@@ -198,10 +198,10 @@ export function BoardSquare({
               ${
                 piece.color === "white"
                   ? isSystemTheme
-                    ? "shadow-2xl shadow-indigo-200/40"
+                    ? "shadow-xl shadow-indigo-200/30"
                     : isDarkTheme
-                      ? "shadow-2xl shadow-white/30"
-                      : "shadow-2xl shadow-indigo-200/40"
+                      ? "shadow-xl shadow-white/20"
+                      : "shadow-xl shadow-indigo-200/30"
                   : isSystemTheme
                     ? "shadow-2xl shadow-purple-700/50"
                     : isDarkTheme
@@ -216,11 +216,17 @@ export function BoardSquare({
           >
             {/* Piece highlight */}
             <div
-              className="absolute inset-1 rounded-full bg-gradient-to-br from-white/70 via-white/30 to-transparent transition-all duration-200 ease-out"
+              className={`absolute inset-1 rounded-full transition-all duration-200 ease-out ${
+                piece.color === "white"
+                  ? "bg-gradient-to-br from-white/50 via-white/20 to-transparent"
+                  : "bg-gradient-to-br from-white/70 via-white/30 to-transparent"
+              }`}
               style={{ borderRadius: "50%" }}
             />
             <div
-              className="absolute top-1 left-1 w-1/3 h-1/3 rounded-full bg-white/80 blur-sm transition-all duration-200 ease-out"
+              className={`absolute top-1 left-1 rounded-full blur-sm transition-all duration-200 ease-out ${
+                piece.color === "white" ? "w-1/4 h-1/4 bg-white/60" : "w-1/3 h-1/3 bg-white/80"
+              }`}
               style={{ borderRadius: "50%" }}
             />
 
