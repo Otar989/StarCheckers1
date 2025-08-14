@@ -42,6 +42,7 @@ export function BoardSquare({
   const [justCaptured, setJustCaptured] = useState(false)
   const [justMoved, setJustMoved] = useState(false)
   const [touchStart, setTouchStart] = useState<{ x: number; y: number; time: number } | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
   const { theme } = useTheme()
   const isDarkSquare = (row + col) % 2 === 1
   const isDarkTheme = theme === "dark"
@@ -67,6 +68,7 @@ export function BoardSquare({
       y: e.touches[0].clientY,
       time: Date.now(),
     })
+    setIsDragging(false)
 
     // Не блокируем стандартное поведение в Telegram
   }
@@ -74,14 +76,31 @@ export function BoardSquare({
   const handleTouchEnd = (e: React.TouchEvent) => {
     setIsPressed(false)
 
+    const touch = e.changedTouches[0]
+
+    if (isDragging) {
+      setIsDragging(false)
+      if (onDrop) {
+        const element = document.elementFromPoint(touch.clientX, touch.clientY)
+        const squareEl = element?.closest('[data-square="true"]') as HTMLElement | null
+        if (squareEl) {
+          const dropRow = parseInt(squareEl.getAttribute('data-row') || '-1')
+          const dropCol = parseInt(squareEl.getAttribute('data-col') || '-1')
+          onDrop(dropRow, dropCol)
+        }
+      }
+      setTouchStart(null)
+      return
+    }
+
     if (!touchStart) {
       onClick()
       return
     }
 
     const touchEnd = {
-      x: e.changedTouches[0].clientX,
-      y: e.changedTouches[0].clientY,
+      x: touch.clientX,
+      y: touch.clientY,
     }
 
     const distanceX = Math.abs(touchStart.x - touchEnd.x)
@@ -98,16 +117,28 @@ export function BoardSquare({
   }
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    // Минимальная обработка для предотвращения случайных кликов при скролле
     if (!touchStart) return
 
     const currentTouch = e.touches[0]
     const deltaX = Math.abs(currentTouch.clientX - touchStart.x)
     const deltaY = Math.abs(currentTouch.clientY - touchStart.y)
 
-    // Если движение значительное, отменяем клик
-    if (deltaX > 30 || deltaY > 30) {
-      setTouchStart(null)
+    if (!isDragging && (deltaX > 10 || deltaY > 10)) {
+      setIsDragging(true)
+      onDragStart?.(row, col)
+    }
+
+    if (isDragging) {
+      e.preventDefault()
+      const element = document.elementFromPoint(currentTouch.clientX, currentTouch.clientY)
+      const squareEl = element?.closest('[data-square="true"]') as HTMLElement | null
+      if (squareEl) {
+        const overRow = parseInt(squareEl.getAttribute('data-row') || '-1')
+        const overCol = parseInt(squareEl.getAttribute('data-col') || '-1')
+        onDragOver?.(overRow, overCol)
+      } else {
+        onDragOver?.(-1, -1)
+      }
     }
   }
 
@@ -152,6 +183,14 @@ export function BoardSquare({
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       onTouchMove={handleTouchMove}
+      onDragOver={(e) => {
+        e.preventDefault()
+        onDragOver?.(row, col)
+      }}
+      onDrop={(e) => {
+        e.preventDefault()
+        onDrop?.(row, col)
+      }}
       onMouseDown={() => setIsPressed(true)}
       onMouseUp={() => setIsPressed(false)}
       onMouseLeave={() => setIsPressed(false)}
@@ -222,6 +261,8 @@ export function BoardSquare({
         <div
           className={`relative w-4/5 h-4/5 group transform-gpu ${justMoved ? "animate-bounce" : ""}`}
           style={{ transform: `translateZ(30px) ${isSelected ? "scale(1.1)" : "scale(1)"}` }}
+          draggable
+          onDragStart={() => onDragStart?.(row, col)}
         >
           <div
             className={`
