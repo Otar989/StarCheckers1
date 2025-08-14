@@ -19,7 +19,7 @@ export class AIEngine {
 
   static getBestMove(board: (Piece | null)[][], difficulty: "easy" | "medium" | "hard"): AIMove | null {
     const startTime = Date.now()
-    const maxThinkTime = difficulty === "easy" ? 500 : difficulty === "medium" ? 2000 : 3000 // Added time limits
+    const maxThinkTime = difficulty === "easy" ? 1000 : difficulty === "medium" ? 8000 : 20000
 
     const depth = this.getDepthForDifficulty(difficulty)
     const randomness = this.getRandomnessForDifficulty(difficulty)
@@ -34,14 +34,12 @@ export class AIEngine {
         if (aCapture && !bCapture) return -1
         if (!aCapture && bCapture) return 1
 
-        // Prioritize center moves
         const aCenterDist = Math.abs(3.5 - a.to.row) + Math.abs(3.5 - a.to.col)
         const bCenterDist = Math.abs(3.5 - b.to.row) + Math.abs(3.5 - b.to.col)
         return aCenterDist - bCenterDist
       })
     }
 
-    // For easy difficulty, sometimes make random moves
     if (difficulty === "easy" && Math.random() < 0.4) {
       const randomMove = allMoves[Math.floor(Math.random() * allMoves.length)]
       return { ...randomMove, score: 0 }
@@ -58,9 +56,8 @@ export class AIEngine {
         let bestCaptureMove: AIMove | null = null
         let bestCaptureScore = Number.NEGATIVE_INFINITY
 
-        for (const move of captureMoves.slice(0, 5)) {
-          // Limit capture moves evaluation for speed
-          if (Date.now() - startTime > maxThinkTime) break // Time limit check
+        for (const move of captureMoves) {
+          if (Date.now() - startTime > maxThinkTime) break
 
           const moveResult = GameLogic.makeMove(board, move.from, move.to)
           if (!moveResult.success || !moveResult.newState) continue
@@ -68,7 +65,7 @@ export class AIEngine {
           const score =
             this.minimax(
               moveResult.newState.board!,
-              Math.min(depth, 4), // Limit depth for capture evaluation
+              Math.min(depth, difficulty === "hard" ? 8 : 6),
               Number.NEGATIVE_INFINITY,
               Number.POSITIVE_INFINITY,
               false,
@@ -93,14 +90,10 @@ export class AIEngine {
     let bestScore = Number.NEGATIVE_INFINITY
 
     const movesToEvaluate =
-      difficulty === "easy"
-        ? allMoves.slice(0, 8)
-        : difficulty === "medium"
-          ? allMoves.slice(0, 12)
-          : allMoves.slice(0, 16)
+      difficulty === "easy" ? allMoves.slice(0, 8) : difficulty === "medium" ? allMoves.slice(0, 20) : allMoves
 
     for (const move of movesToEvaluate) {
-      if (Date.now() - startTime > maxThinkTime) break // Time limit check
+      if (Date.now() - startTime > maxThinkTime) break
 
       const moveResult = GameLogic.makeMove(board, move.from, move.to)
       if (!moveResult.success || !moveResult.newState) continue
@@ -130,11 +123,11 @@ export class AIEngine {
   private static getDepthForDifficulty(difficulty: "easy" | "medium" | "hard"): number {
     switch (difficulty) {
       case "easy":
-        return 3
+        return 4
       case "medium":
-        return 5 // Reduced from 8 to 5 for faster response
+        return 8
       case "hard":
-        return 7 // Reduced from 12 to 7 for faster response
+        return 12
       default:
         return 4
     }
@@ -143,11 +136,11 @@ export class AIEngine {
   private static getRandomnessForDifficulty(difficulty: "easy" | "medium" | "hard"): number {
     switch (difficulty) {
       case "easy":
-        return 80 // Reduced from 100
+        return 80
       case "medium":
-        return 5 // Reduced from 30
+        return 5
       case "hard":
-        return 0 // Reduced from 5 to 0
+        return 0
       default:
         return 30
     }
@@ -160,8 +153,8 @@ export class AIEngine {
     beta: number,
     isMaximizing: boolean,
     difficulty: "easy" | "medium" | "hard",
-    startTime: number, // Added time tracking
-    maxThinkTime: number, // Added time limit
+    startTime: number,
+    maxThinkTime: number,
   ): number {
     if (Date.now() - startTime > maxThinkTime) {
       return this.evaluateBoard(board, difficulty)
@@ -178,27 +171,13 @@ export class AIEngine {
       return isMaximizing ? -10000 : 10000
     }
 
-    if (difficulty !== "easy") {
-      moves.sort((a, b) => {
-        const aCapture = Math.abs(a.to.row - a.from.row) > 1 || Math.abs(a.to.col - a.from.col) > 1
-        const bCapture = Math.abs(b.to.row - b.from.row) > 1 || Math.abs(b.to.col - b.from.col) > 1
-        if (aCapture && !bCapture) return -1
-        if (!aCapture && bCapture) return 1
-
-        // Prioritize moves towards center
-        const aCenterDist = Math.abs(3.5 - a.to.row) + Math.abs(3.5 - a.to.col)
-        const bCenterDist = Math.abs(3.5 - b.to.row) + Math.abs(3.5 - b.to.col)
-        return aCenterDist - bCenterDist
-      })
-    }
-
-    const maxMovesToEvaluate = depth > 4 ? 8 : depth > 2 ? 12 : moves.length
+    const maxMovesToEvaluate = difficulty === "easy" ? 8 : difficulty === "medium" ? 15 : moves.length
     const movesToEvaluate = moves.slice(0, maxMovesToEvaluate)
 
     if (isMaximizing) {
       let maxEval = Number.NEGATIVE_INFINITY
       for (const move of movesToEvaluate) {
-        if (Date.now() - startTime > maxThinkTime) break // Time limit check
+        if (Date.now() - startTime > maxThinkTime) break
 
         const moveResult = GameLogic.makeMove(board, move.from, move.to)
         if (!moveResult.success || !moveResult.newState) continue
@@ -216,13 +195,13 @@ export class AIEngine {
         maxEval = Math.max(maxEval, evaluation)
         alpha = Math.max(alpha, evaluation)
 
-        if (beta <= alpha) break // Alpha-beta pruning
+        if (beta <= alpha) break
       }
       return maxEval
     } else {
       let minEval = Number.POSITIVE_INFINITY
       for (const move of movesToEvaluate) {
-        if (Date.now() - startTime > maxThinkTime) break // Time limit check
+        if (Date.now() - startTime > maxThinkTime) break
 
         const moveResult = GameLogic.makeMove(board, move.from, move.to)
         if (!moveResult.success || !moveResult.newState) continue
@@ -240,7 +219,7 @@ export class AIEngine {
         minEval = Math.min(minEval, evaluation)
         beta = Math.min(beta, evaluation)
 
-        if (beta <= alpha) break // Alpha-beta pruning
+        if (beta <= alpha) break
       }
       return minEval
     }
@@ -254,7 +233,7 @@ export class AIEngine {
         const piece = board[row][col]
         if (!piece) continue
 
-        const pieceValue = piece.type === "king" ? this.KING_VALUE : this.PIECE_VALUE
+        const pieceValue = piece.type === "king" ? this.KING_VALUE * 1.2 : this.PIECE_VALUE
         const positionBonus = this.getPositionBonus(piece, row, col, difficulty)
 
         if (piece.color === "black") {
@@ -266,12 +245,15 @@ export class AIEngine {
     }
 
     if (difficulty !== "easy") {
-      score += this.getAdvancedStrategicBonus(board, "black", difficulty)
-      score -= this.getAdvancedStrategicBonus(board, "white", difficulty)
+      const strategicMultiplier = difficulty === "hard" ? 1.5 : 1.2
+      score += this.getAdvancedStrategicBonus(board, "black", difficulty) * strategicMultiplier
+      score -= this.getAdvancedStrategicBonus(board, "white", difficulty) * strategicMultiplier
 
-      score += this.evaluateThreats(board, "black") - this.evaluateThreats(board, "white")
+      score += (this.evaluateThreats(board, "black") - this.evaluateThreats(board, "white")) * strategicMultiplier
 
-      score += this.evaluateDiagonalControl(board, "black") - this.evaluateDiagonalControl(board, "white")
+      score +=
+        (this.evaluateDiagonalControl(board, "black") - this.evaluateDiagonalControl(board, "white")) *
+        strategicMultiplier
     }
 
     return score
@@ -296,7 +278,7 @@ export class AIEngine {
 
     if (piece.type === "regular") {
       if (piece.color === "black") {
-        bonus += row * 8 // Stronger advancement bonus
+        bonus += row * 8
         if (row >= 6) bonus += this.PROMOTION_BONUS / 2
       } else {
         bonus += (7 - row) * 8
@@ -305,7 +287,6 @@ export class AIEngine {
     }
 
     if (piece.type === "king") {
-      // Kings are better in center for mobility
       bonus += (4 - centerDistance) * 10
     }
 
@@ -358,7 +339,6 @@ export class AIEngine {
       const regularPieces = pieces.filter((p) => p.piece.type === "regular")
       const kings = pieces.filter((p) => p.piece.type === "king")
 
-      // Bonus for pieces supporting each other
       for (const piece1 of pieces) {
         for (const piece2 of pieces) {
           if (piece1 === piece2) continue
@@ -383,13 +363,11 @@ export class AIEngine {
       for (let col = 0; col < 8; col++) {
         const piece = board[row][col]
         if (piece && piece.color === color) {
-          // Check if this piece is under threat
           const isUnderThreat = this.isPieceUnderThreat(board, piece, row, col, opponentColor)
           if (isUnderThreat) {
             threatScore -= piece.type === "king" ? this.THREAT_PENALTY * 2 : this.THREAT_PENALTY
           }
 
-          // Check if this piece is threatening opponent pieces
           const threatenedPieces = this.getThreatenedPieces(board, piece, row, col, opponentColor)
           threatScore += threatenedPieces * (this.THREAT_PENALTY / 2)
         }
@@ -402,7 +380,6 @@ export class AIEngine {
   private static evaluateDiagonalControl(board: (Piece | null)[][], color: "white" | "black"): number {
     let controlScore = 0
 
-    // Evaluate control of main diagonals
     const mainDiagonals = [
       [
         [0, 0],
@@ -413,7 +390,7 @@ export class AIEngine {
         [5, 5],
         [6, 6],
         [7, 7],
-      ], // Main diagonal
+      ],
       [
         [0, 7],
         [1, 6],
@@ -423,7 +400,7 @@ export class AIEngine {
         [5, 2],
         [6, 1],
         [7, 0],
-      ], // Anti-diagonal
+      ],
     ]
 
     for (const diagonal of mainDiagonals) {

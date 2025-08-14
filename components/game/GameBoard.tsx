@@ -25,9 +25,16 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
   const { theme } = useTheme()
   const [isAIThinking, setIsAIThinking] = useState(false)
   const [dragOver, setDragOver] = useState<{ row: number; col: number } | null>(null)
+  const [isProcessingMove, setIsProcessingMove] = useState(false)
 
   useEffect(() => {
-    if (mode === "bot" && state.currentPlayer === "black" && state.gameStatus === "playing" && !isAIThinking) {
+    if (
+      mode === "bot" &&
+      state.currentPlayer === "black" &&
+      state.gameStatus === "playing" &&
+      !isAIThinking &&
+      !isProcessingMove
+    ) {
       setTimeout(() => {
         setIsAIThinking(true)
 
@@ -37,6 +44,7 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
           const aiMove = AIEngine.getBestMove(state.board, difficulty)
 
           if (aiMove) {
+            setIsProcessingMove(true)
             const moveResult = GameLogic.makeMove(state.board, aiMove.from, aiMove.to)
 
             if (moveResult.success && moveResult.newState) {
@@ -49,11 +57,12 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
                 hapticFeedback("heavy")
               }
             }
+            setIsProcessingMove(false)
           }
 
           setIsAIThinking(false)
         }, thinkingTime)
-      }, 400) // Задержка 400ms перед началом думания ИИ
+      }, 400)
     }
   }, [
     state.currentPlayer,
@@ -65,10 +74,11 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
     playSound,
     hapticFeedback,
     isAIThinking,
+    isProcessingMove,
   ])
 
   const handleSquareClick = (row: number, col: number) => {
-    if (isAIThinking || (mode === "bot" && state.currentPlayer === "black")) {
+    if (isAIThinking || isProcessingMove || (mode === "bot" && state.currentPlayer === "black")) {
       return
     }
 
@@ -106,13 +116,19 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
     const isValidMove = state.validMoves.some((move) => move.row === row && move.col === col)
 
     if (isValidMove && state.selectedPiece) {
+      setIsProcessingMove(true)
+
       const moveResult = GameLogic.makeMove(state.board, state.selectedPiece.position, position)
 
       if (moveResult.success && moveResult.newState) {
-        dispatch({ type: "SELECT_PIECE", piece: null })
-        dispatch({ type: "SET_VALID_MOVES", moves: [] })
+        if (moveResult.hasMoreCaptures) {
+          dispatch({ type: "SET_GAME_STATE", state: moveResult.newState })
+        } else {
+          dispatch({ type: "SELECT_PIECE", piece: null })
+          dispatch({ type: "SET_VALID_MOVES", moves: [] })
+          dispatch({ type: "SET_GAME_STATE", state: moveResult.newState })
+        }
 
-        dispatch({ type: "SET_GAME_STATE", state: moveResult.newState })
         playSound(moveResult.capturedPieces.length > 0 ? "capture" : "move")
         hapticFeedback(moveResult.capturedPieces.length > 0 ? "medium" : "light")
 
@@ -129,6 +145,8 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
           hapticFeedback("heavy")
         }
       }
+
+      setIsProcessingMove(false)
     } else {
       dispatch({ type: "SELECT_PIECE", piece: null })
       dispatch({ type: "SET_VALID_MOVES", moves: [] })
@@ -155,6 +173,7 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
   const resetGame = () => {
     dispatch({ type: "RESET_GAME" })
     setIsAIThinking(false)
+    setIsProcessingMove(false)
     hapticFeedback("medium")
   }
 
@@ -265,7 +284,7 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
               ? "bg-black/20 border-white/10"
               : theme === "system"
                 ? "bg-purple-900/30 border-purple-300/20"
-                : "bg-white/30 border-white/40"
+                : "bg-white/20 border-white/30"
           }`}
         >
           <h2
