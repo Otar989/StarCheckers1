@@ -59,9 +59,9 @@ const availableThemes: ThemeOption[] = [
 ]
 
 export function useTheme() {
-  const [theme, setThemeState] = useState<ThemeMode>("system")
+  const [theme, setThemeState] = useState<ThemeMode>("dark")
   const [boardTheme, setBoardThemeState] = useState<string>("classic")
-  const [isDark, setIsDark] = useState(false)
+  const [isDark, setIsDark] = useState(true)
 
   useEffect(() => {
     if (theme === "light") {
@@ -85,6 +85,9 @@ export function useTheme() {
 
     if (savedTheme && ["light", "dark", "system"].includes(savedTheme)) {
       setThemeState(savedTheme)
+    } else {
+      setThemeState("dark")
+      localStorage.setItem("starcheckers-color-theme", "dark")
     }
 
     if (savedBoardTheme && availableThemes.find((t) => t.id === savedBoardTheme)) {
