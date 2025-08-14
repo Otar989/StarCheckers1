@@ -12,11 +12,6 @@ export class AIEngine {
   private static readonly KING_VALUE = 300
   private static readonly POSITION_BONUS = 10
   private static readonly CAPTURE_BONUS = 50
-  private static readonly MOBILITY_BONUS = 5
-  private static readonly KING_SAFETY_BONUS = 25
-  private static readonly CENTER_CONTROL_BONUS = 15
-  private static readonly ADVANCEMENT_BONUS = 8
-  private static readonly TEMPO_BONUS = 20
 
   static getBestMove(board: (Piece | null)[][], difficulty: "easy" | "medium" | "hard"): AIMove | null {
     const depth = this.getDepthForDifficulty(difficulty)
@@ -34,9 +29,7 @@ export class AIEngine {
     let bestMove: AIMove | null = null
     let bestScore = Number.NEGATIVE_INFINITY
 
-    const sortedMoves = this.sortMovesByPriority(board, allMoves)
-
-    for (const move of sortedMoves) {
+    for (const move of allMoves) {
       const moveResult = GameLogic.makeMove(board, move.from, move.to)
       if (!moveResult.success || !moveResult.newState) continue
 
@@ -64,11 +57,11 @@ export class AIEngine {
   private static getDepthForDifficulty(difficulty: "easy" | "medium" | "hard"): number {
     switch (difficulty) {
       case "easy":
-        return 3
+        return 2
       case "medium":
-        return 7 // Увеличено с 4 до 7
+        return 4
       case "hard":
-        return 10 // Увеличено с 6 до 10
+        return 6
       default:
         return 4
     }
@@ -77,31 +70,14 @@ export class AIEngine {
   private static getRandomnessForDifficulty(difficulty: "easy" | "medium" | "hard"): number {
     switch (difficulty) {
       case "easy":
-        return 80 // Уменьшено со 100
+        return 100 // High randomness
       case "medium":
-        return 10 // Уменьшено с 30
+        return 30 // Medium randomness
       case "hard":
-        return 2 // Уменьшено с 5
+        return 5 // Low randomness
       default:
         return 30
     }
-  }
-
-  private static sortMovesByPriority(board: (Piece | null)[][], moves: AIMove[]): AIMove[] {
-    return moves.sort((a, b) => {
-      // Приоритет захватам
-      const aIsCapture = Math.abs(a.to.row - a.from.row) > 1
-      const bIsCapture = Math.abs(b.to.row - b.from.row) > 1
-
-      if (aIsCapture && !bIsCapture) return -1
-      if (!aIsCapture && bIsCapture) return 1
-
-      // Приоритет ходам к центру
-      const aCenterDistance = Math.abs(3.5 - a.to.row) + Math.abs(3.5 - a.to.col)
-      const bCenterDistance = Math.abs(3.5 - b.to.row) + Math.abs(3.5 - b.to.col)
-
-      return aCenterDistance - bCenterDistance
-    })
   }
 
   private static minimax(
@@ -124,11 +100,9 @@ export class AIEngine {
       return isMaximizing ? -10000 : 10000
     }
 
-    const sortedMoves = this.sortMovesByPriority(board, moves)
-
     if (isMaximizing) {
       let maxEval = Number.NEGATIVE_INFINITY
-      for (const move of sortedMoves) {
+      for (const move of moves) {
         const moveResult = GameLogic.makeMove(board, move.from, move.to)
         if (!moveResult.success || !moveResult.newState) continue
 
@@ -141,7 +115,7 @@ export class AIEngine {
       return maxEval
     } else {
       let minEval = Number.POSITIVE_INFINITY
-      for (const move of sortedMoves) {
+      for (const move of moves) {
         const moveResult = GameLogic.makeMove(board, move.from, move.to)
         if (!moveResult.success || !moveResult.newState) continue
 
@@ -158,7 +132,6 @@ export class AIEngine {
   private static evaluateBoard(board: (Piece | null)[][], difficulty: "easy" | "medium" | "hard"): number {
     let score = 0
 
-    // Базовая оценка материала
     for (let row = 0; row < 8; row++) {
       for (let col = 0; col < 8; col++) {
         const piece = board[row][col]
@@ -175,10 +148,9 @@ export class AIEngine {
       }
     }
 
-    // Стратегические бонусы для средней и сложной сложности
+    // Add strategic bonuses for higher difficulties
     if (difficulty !== "easy") {
-      score += this.getAdvancedStrategicBonus(board, "black", difficulty)
-      score -= this.getAdvancedStrategicBonus(board, "white", difficulty)
+      score += this.getStrategicBonus(board, "black") - this.getStrategicBonus(board, "white")
     }
 
     return score
@@ -194,111 +166,65 @@ export class AIEngine {
 
     let bonus = 0
 
-    // Контроль центра (более важен для сложных уровней)
+    // Center control bonus
     const centerDistance = Math.abs(3.5 - row) + Math.abs(3.5 - col)
-    const centerBonus = difficulty === "hard" ? this.CENTER_CONTROL_BONUS : this.CENTER_CONTROL_BONUS / 2
-    bonus += ((7 - centerDistance) * centerBonus) / 7
+    bonus += (7 - centerDistance) * 2
 
-    // Штраф за края (короли исключение)
-    if ((row === 0 || row === 7 || col === 0 || col === 7) && piece.type !== "king") {
-      bonus -= difficulty === "hard" ? 15 : 8
+    // Edge penalty
+    if (row === 0 || row === 7 || col === 0 || col === 7) {
+      bonus -= 5
     }
 
-    // Бонус за продвижение обычных шашек
+    // Advancement bonus for regular pieces
     if (piece.type === "regular") {
-      const advancementBonus = difficulty === "hard" ? this.ADVANCEMENT_BONUS : this.ADVANCEMENT_BONUS / 2
       if (piece.color === "black") {
-        bonus += row * advancementBonus // Черные продвигаются вниз
+        bonus += row * 3 // Black pieces advance downward
       } else {
-        bonus += (7 - row) * advancementBonus // Белые продвигаются вверх
+        bonus += (7 - row) * 3 // White pieces advance upward
       }
     }
 
     return bonus
   }
 
-  private static getAdvancedStrategicBonus(
-    board: (Piece | null)[][],
-    color: "white" | "black",
-    difficulty: "easy" | "medium" | "hard",
-  ): number {
+  private static getStrategicBonus(board: (Piece | null)[][], color: "white" | "black"): number {
     let bonus = 0
     const pieces = []
-    const enemyPieces = []
 
-    // Собираем все фигуры
+    // Collect all pieces of the color
     for (let row = 0; row < 8; row++) {
       for (let col = 0; col < 8; col++) {
         const piece = board[row][col]
-        if (piece) {
-          if (piece.color === color) {
-            pieces.push(piece)
-          } else {
-            enemyPieces.push(piece)
-          }
+        if (piece && piece.color === color) {
+          pieces.push(piece)
         }
       }
     }
 
-    // Бонус за мобильность
-    let totalMobility = 0
+    // Mobility bonus - more possible moves is better
     for (const piece of pieces) {
       const moves = GameLogic.getValidMoves(board, piece)
-      totalMobility += moves.length
+      bonus += moves.length * 2
 
-      // Дополнительный бонус за возможности захвата
+      // Capture opportunity bonus
       for (const move of moves) {
         const rowDiff = Math.abs(move.row - piece.position.row)
         const colDiff = Math.abs(move.col - piece.position.col)
         if (rowDiff > 1 || colDiff > 1) {
-          bonus += this.CAPTURE_BONUS * (difficulty === "hard" ? 1.5 : 1)
+          bonus += this.CAPTURE_BONUS
         }
       }
     }
-    bonus += totalMobility * this.MOBILITY_BONUS
 
-    // Безопасность королей
+    // King safety bonus
     const kings = pieces.filter((p) => p.type === "king")
     for (const king of kings) {
-      // Короли у краев более безопасны
+      // Kings near edges are safer
       const edgeDistance = Math.min(king.position.row, 7 - king.position.row, king.position.col, 7 - king.position.col)
-      if (edgeDistance <= 1) {
-        bonus += this.KING_SAFETY_BONUS * (difficulty === "hard" ? 1.5 : 1)
-      }
-
-      // Бонус за поддержку других фигур
-      const supportingPieces = pieces.filter((p) => {
-        const rowDiff = Math.abs(p.position.row - king.position.row)
-        const colDiff = Math.abs(p.position.col - king.position.col)
-        return rowDiff <= 2 && colDiff <= 2 && p.id !== king.id
-      })
-      bonus += supportingPieces.length * 10
-    }
-
-    // Темповый бонус (количество фигур на доске)
-    const materialAdvantage = pieces.length - enemyPieces.length
-    bonus += materialAdvantage * this.TEMPO_BONUS
-
-    // Бонус за контроль важных клеток (для сложного уровня)
-    if (difficulty === "hard") {
-      const controlledSquares = this.getControlledSquares(board, pieces)
-      bonus += controlledSquares * 3
+      if (edgeDistance <= 1) bonus += 20
     }
 
     return bonus
-  }
-
-  private static getControlledSquares(board: (Piece | null)[][], pieces: Piece[]): number {
-    const controlled = new Set<string>()
-
-    for (const piece of pieces) {
-      const moves = GameLogic.getValidMoves(board, piece)
-      for (const move of moves) {
-        controlled.add(`${move.row}-${move.col}`)
-      }
-    }
-
-    return controlled.size
   }
 
   private static getAllPossibleMoves(board: (Piece | null)[][], color: "white" | "black"): AIMove[] {

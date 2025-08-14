@@ -59,25 +59,23 @@ const availableThemes: ThemeOption[] = [
 ]
 
 export function useTheme() {
-  const [theme, setThemeState] = useState<ThemeMode>("system")
+  const [theme, setThemeState] = useState<ThemeMode>("dark")
   const [boardTheme, setBoardThemeState] = useState<string>("classic")
-  const [isDark, setIsDark] = useState(false)
+  const [isDark, setIsDark] = useState(true)
 
-  // Определяем системную тему
   useEffect(() => {
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)")
-
-    const updateSystemTheme = () => {
-      if (theme === "system") {
-        setIsDark(mediaQuery.matches)
-        document.documentElement.classList.toggle("dark", mediaQuery.matches)
-      }
+    if (theme === "light") {
+      setIsDark(false)
+      document.documentElement.classList.remove("dark", "system")
+    } else if (theme === "dark") {
+      setIsDark(true)
+      document.documentElement.classList.remove("system")
+      document.documentElement.classList.add("dark")
+    } else if (theme === "system") {
+      setIsDark(false) // Системная тема не темная, но и не светлая
+      document.documentElement.classList.remove("dark")
+      document.documentElement.classList.add("system")
     }
-
-    updateSystemTheme()
-    mediaQuery.addEventListener("change", updateSystemTheme)
-
-    return () => mediaQuery.removeEventListener("change", updateSystemTheme)
   }, [theme])
 
   // Загружаем сохраненные настройки
@@ -87,24 +85,15 @@ export function useTheme() {
 
     if (savedTheme && ["light", "dark", "system"].includes(savedTheme)) {
       setThemeState(savedTheme)
+    } else {
+      setThemeState("dark")
+      localStorage.setItem("starcheckers-color-theme", "dark")
     }
 
     if (savedBoardTheme && availableThemes.find((t) => t.id === savedBoardTheme)) {
       setBoardThemeState(savedBoardTheme)
     }
   }, [])
-
-  // Применяем тему
-  useEffect(() => {
-    if (theme === "light") {
-      setIsDark(false)
-      document.documentElement.classList.remove("dark")
-    } else if (theme === "dark") {
-      setIsDark(true)
-      document.documentElement.classList.add("dark")
-    }
-    // Для 'system' обработка в первом useEffect
-  }, [theme])
 
   const setTheme = (newTheme: ThemeMode) => {
     setThemeState(newTheme)

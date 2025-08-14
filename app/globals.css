@@ -2,6 +2,7 @@
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
+@custom-variant system (&:is(.system *));
 
 :root {
   --background: oklch(1 0 0);
@@ -72,6 +73,42 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(0.269 0 0);
   --sidebar-ring: oklch(0.439 0 0);
+}
+
+.system {
+  /* Making system theme much darker (lightness 0.12) to be more dark than light while keeping purple tones */
+  --background: oklch(0.12 0.05 270);
+  --foreground: oklch(0.95 0.01 270);
+  --card: oklch(0.16 0.04 270);
+  --card-foreground: oklch(0.92 0.01 270);
+  --popover: oklch(0.16 0.04 270);
+  --popover-foreground: oklch(0.92 0.01 270);
+  --primary: oklch(0.7 0.12 270);
+  --primary-foreground: oklch(0.98 0.005 270);
+  --secondary: oklch(0.2 0.04 270);
+  --secondary-foreground: oklch(0.9 0.01 270);
+  --muted: oklch(0.24 0.03 270);
+  --muted-foreground: oklch(0.75 0.02 270);
+  --accent: oklch(0.6 0.1 270);
+  --accent-foreground: oklch(0.95 0.01 270);
+  --destructive: oklch(0.5 0.15 15);
+  --destructive-foreground: oklch(0.9 0.05 15);
+  --border: oklch(0.3 0.04 270);
+  --input: oklch(0.3 0.04 270);
+  --ring: oklch(0.7 0.12 270);
+  --chart-1: oklch(0.65 0.14 260);
+  --chart-2: oklch(0.6 0.12 280);
+  --chart-3: oklch(0.7 0.1 250);
+  --chart-4: oklch(0.55 0.16 290);
+  --chart-5: oklch(0.75 0.12 240);
+  --sidebar: oklch(0.2 0.04 270);
+  --sidebar-foreground: oklch(0.92 0.01 270);
+  --sidebar-primary: oklch(0.7 0.12 270);
+  --sidebar-primary-foreground: oklch(0.98 0.005 270);
+  --sidebar-accent: oklch(0.24 0.03 270);
+  --sidebar-accent-foreground: oklch(0.92 0.01 270);
+  --sidebar-border: oklch(0.3 0.04 270);
+  --sidebar-ring: oklch(0.7 0.12 270);
 }
 
 @theme inline {
@@ -194,9 +231,9 @@
     135deg,
     rgba(255, 255, 255, 0.15) 0%,
     rgba(255, 255, 255, 0.05) 50%,
-    rgba(255, 255, 255, 0.15) 100%
+    rgba(0, 0, 0, 0.05) 100%
   );
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   backdrop-filter: blur(25px);
   -webkit-backdrop-filter: blur(25px);
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 0 8px 32px rgba(0, 0, 0, 0.1), inset 0 2px 4px rgba(255, 255, 255, 0.2),
@@ -239,8 +276,9 @@
   }
 
   .touch-target-large {
-    min-height: 56px;
-    min-width: 56px;
+    min-height: 60px;
+    min-width: 60px;
+    position: relative;
   }
 
   /* Enhanced responsive game board sizing */
@@ -343,7 +381,7 @@
   transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   cursor: pointer;
   /* Enhanced touch handling */
-  -webkit-tap-highlight-color: transparent;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
   touch-action: manipulation;
 }
 
@@ -354,6 +392,12 @@
   transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   border-radius: 12px;
   overflow: hidden;
+}
+
+.board-square-3d::before,
+.board-square-3d::after {
+  /* Явно указываем что псевдоэлементы не блокируют события */
+  pointer-events: none;
 }
 
 .board-square-3d::before {
@@ -567,6 +611,25 @@
   animation: valid-move-pulse 2s ease-in-out infinite;
 }
 
+.valid-move-indicator {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.valid-move-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(34, 197, 94, 0.8);
+  box-shadow: 0 0 20px rgba(34, 197, 94, 0.6);
+  animation: pulse 2s ease-in-out infinite;
+}
+
 @keyframes valid-move-pulse {
   0%,
   100% {
@@ -576,6 +639,18 @@
   50% {
     box-shadow: 0 25px 80px rgba(34, 197, 94, 0.5), 0 12px 40px rgba(34, 197, 94, 0.4), 0 0 0 4px rgba(34, 197, 94, 0.6),
       inset 0 2px 4px rgba(255, 255, 255, 0.3);
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
   }
 }
 
@@ -1012,6 +1087,58 @@
     inset 0 -4px 8px rgba(0, 0, 0, 0.3);
 }
 
+/* System Theme Adjustments */
+.system .menu-btn-tahoe,
+.system .settings-btn-tahoe {
+  background: rgba(255, 255, 255, 0.15);
+  border: 0.5px solid rgba(255, 255, 255, 0.2);
+  color: var(--foreground);
+}
+
+.system .menu-btn-tahoe:hover,
+.system .settings-btn-tahoe:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.system .menu-btn-tahoe:active,
+.system .settings-btn-tahoe:active {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.system .liquid-glass-3d {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.2) 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(0, 0, 0, 0.05) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 0 8px 32px rgba(0, 0, 0, 0.1), inset 0 2px 4px rgba(255, 255, 255, 0.2),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.system .board-square-3d::before {
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.15) 0%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(0, 0, 0, 0.03) 100%
+  );
+}
+
+.system .game-board-3d {
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.2) 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(0, 0, 0, 0.05) 100%
+  );
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  box-shadow:
+    0 40px 120px rgba(0, 0, 0, 0.2), 0 20px 60px rgba(0, 0, 0, 0.15),
+    inset 0 4px 8px rgba(255, 255, 255, 0.2), inset 0 -4px 8px rgba(0, 0, 0, 0.08);
+}
+
 /* Enhanced performance optimizations */
 .gpu-accelerated {
   transform: translateZ(0);
@@ -1169,4 +1296,74 @@
 
 .animate-gradient {
   animation: gradient 3s ease infinite;
+}
+
+/* Dynamic background animations for Liquid Glass effects */
+@keyframes moveGradient {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes moveWave {
+  0% {
+    transform: translateX(-50%) translateY(-10%);
+  }
+  100% {
+    transform: translateX(50%) translateY(10%);
+  }
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px) translateX(0px);
+    opacity: 0.4;
+  }
+  25% {
+    transform: translateY(-10px) translateX(5px);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translateY(-5px) translateX(-5px);
+    opacity: 0.8;
+  }
+  75% {
+    transform: translateY(-15px) translateX(3px);
+    opacity: 0.5;
+  }
+}
+
+@keyframes gentleFloat {
+  0%,
+  100% {
+    transform: translateY(0px) translateX(0px) scale(1);
+    opacity: 0.3;
+  }
+  33% {
+    transform: translateY(-8px) translateX(4px) scale(1.1);
+    opacity: 0.5;
+  }
+  66% {
+    transform: translateY(-3px) translateX(-4px) scale(0.9);
+    opacity: 0.7;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    opacity: 0.1;
+    transform: scaleY(0.8);
+  }
+  50% {
+    opacity: 0.3;
+    transform: scaleY(1.2);
+  }
+  100% {
+    opacity: 0.1;
+    transform: scaleY(0.8);
+  }
 }
