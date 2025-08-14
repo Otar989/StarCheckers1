@@ -1,0 +1,907 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --radius: 0.625rem;
+  --sidebar: oklch(1 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.145 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.145 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.985 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.396 0.141 25.723);
+  --destructive-foreground: oklch(0.637 0.237 25.331);
+  --border: oklch(0.269 0 0);
+  --input: oklch(0.269 0 0);
+  --ring: oklch(0.439 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(0.269 0 0);
+  --sidebar-ring: oklch(0.439 0 0);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    /* Enhanced iOS Safari optimizations */
+    -webkit-text-size-adjust: 100%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    /* Added support for dynamic viewport units */
+    height: 100%;
+    height: 100dvh;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    /* Enhanced safe area support and overscroll prevention */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+    /* Enhanced touch handling for mobile */
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    height: 100%;
+    height: 100dvh;
+  }
+}
+
+/* Enhanced Liquid Glass Effects */
+.liquid-glass {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0.05) 50%,
+    rgba(255, 255, 255, 0.1) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1), 0 4px 16px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.liquid-glass-button {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.12) 0%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.12) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.liquid-glass-button:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.18) 0%,
+    rgba(255, 255, 255, 0.12) 50%,
+    rgba(255, 255, 255, 0.18) 100%
+  );
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12), 0 6px 16px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* Enhanced responsive breakpoint optimizations */
+@layer utilities {
+  /* Improved minimum touch target sizes for accessibility */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .touch-target-large {
+    min-height: 56px;
+    min-width: 56px;
+  }
+
+  /* Enhanced responsive game board sizing */
+  .game-board-container {
+    width: 100%;
+    max-width: min(85vw, 85vh, 350px);
+    aspect-ratio: 1;
+  }
+
+  /* Mobile-first responsive spacing with better scaling */
+  .responsive-padding {
+    @apply p-3;
+  }
+
+  @media (min-width: 375px) {
+    .responsive-padding {
+      @apply p-4;
+    }
+
+    .game-board-container {
+      max-width: min(88vw, 88vh, 380px);
+    }
+  }
+
+  @media (min-width: 768px) {
+    .responsive-padding {
+      @apply p-6;
+    }
+
+    .game-board-container {
+      max-width: min(70vw, 70vh, 480px);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .responsive-padding {
+      @apply p-8;
+    }
+
+    .game-board-container {
+      max-width: min(60vw, 60vh, 560px);
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .game-board-container {
+      max-width: min(50vw, 50vh, 600px);
+    }
+  }
+}
+
+/* Enhanced Game Board Styles with better Liquid Glass integration */
+.game-board {
+  background: linear-gradient(
+    145deg,
+    rgba(139, 69, 19, 0.9) 0%,
+    rgba(160, 82, 45, 0.8) 50%,
+    rgba(139, 69, 19, 0.9) 100%
+  );
+  border: 3px solid rgba(101, 67, 33, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 0 0 1px rgba(139, 69, 19, 0.6), 0 12px 48px rgba(0, 0, 0, 0.25), 0 6px 24px rgba(0, 0, 0, 0.15), inset 0
+    2px 4px rgba(255, 255, 255, 0.1);
+}
+
+.board-square {
+  position: relative;
+  transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  cursor: pointer;
+  /* Enhanced touch handling */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.board-square.dark {
+  background: linear-gradient(145deg, rgba(101, 67, 33, 0.9), rgba(139, 69, 19, 0.8));
+}
+
+.board-square.light {
+  background: linear-gradient(145deg, rgba(222, 184, 135, 0.9), rgba(245, 222, 179, 0.8));
+}
+
+.board-square:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+/* Enhanced Piece Styles with better 3D effects */
+.piece {
+  width: 80%;
+  height: 80%;
+  border-radius: 50%;
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  cursor: pointer;
+  /* Enhanced touch handling */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.piece.white {
+  background: linear-gradient(
+    145deg,
+    rgba(248, 249, 250, 0.95) 0%,
+    rgba(233, 236, 239, 0.9) 50%,
+    rgba(248, 249, 250, 0.95) 100%
+  );
+  border: 2px solid rgba(222, 226, 230, 0.8);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2), 0 3px 6px rgba(0, 0, 0, 0.1), inset 0 2px 4px rgba(255, 255, 255, 0.8);
+}
+
+.piece.black {
+  background: linear-gradient(145deg, rgba(52, 58, 64, 0.95) 0%, rgba(73, 80, 87, 0.9) 50%, rgba(52, 58, 64, 0.95) 100%);
+  border: 2px solid rgba(108, 117, 125, 0.8);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3), 0 3px 6px rgba(0, 0, 0, 0.2), inset 0 2px 4px rgba(255, 255, 255, 0.1);
+}
+
+.piece.selected {
+  transform: scale(1.15);
+  box-shadow: 0 0 24px rgba(59, 130, 246, 0.6), 0 0 12px rgba(59, 130, 246, 0.4), 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+
+.piece.king::after {
+  content: "♔";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: clamp(16px, 4vw, 24px);
+  color: #ffd700;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5), 0 0 8px rgba(255, 215, 0, 0.3);
+  filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.5));
+}
+
+/* Enhanced valid move indicators */
+.valid-move {
+  background: radial-gradient(circle, rgba(34, 197, 94, 0.4) 0%, rgba(34, 197, 94, 0.2) 50%, transparent 70%);
+  border: 2px solid rgba(34, 197, 94, 0.8);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+
+.valid-move::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: clamp(16px, 3vw, 20px);
+  height: clamp(16px, 3vw, 20px);
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  border-radius: 50%;
+  opacity: 0.9;
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.4);
+}
+
+/* Enhanced animations with better performance */
+@keyframes piece-move {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.piece-moving {
+  animation: piece-move 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+@keyframes capture-effect {
+  0% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2) rotate(90deg);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(0) rotate(180deg);
+    opacity: 0;
+  }
+}
+
+.piece-captured {
+  animation: capture-effect 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* Apple Tahoe iOS 26 Button System */
+.btn-tahoe {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 17px;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  border-radius: 16px;
+  transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
+  min-height: 50px;
+  padding: 0 24px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transform: translateZ(0);
+  will-change: transform, box-shadow;
+}
+
+/* Primary Button - iOS 26 Blue */
+.btn-tahoe-primary {
+  background: linear-gradient(
+    135deg,
+    rgba(0, 122, 255, 0.95) 0%,
+    rgba(10, 132, 255, 0.9) 50%,
+    rgba(0, 122, 255, 0.95) 100%
+  );
+  color: white;
+  box-shadow: 0 8px 32px rgba(0, 122, 255, 0.25), 0 4px 16px rgba(0, 122, 255, 0.15), inset 0 1px 0
+    rgba(255, 255, 255, 0.2);
+}
+
+.btn-tahoe-primary:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 12px 40px rgba(0, 122, 255, 0.35), 0 6px 20px rgba(0, 122, 255, 0.25), inset 0 1px 0
+    rgba(255, 255, 255, 0.3);
+}
+
+.btn-tahoe-primary:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: 0 4px 16px rgba(0, 122, 255, 0.2), 0 2px 8px rgba(0, 122, 255, 0.1), inset 0 1px 0
+    rgba(255, 255, 255, 0.1);
+}
+
+/* Secondary Button - Glass Effect */
+.btn-tahoe-secondary {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--foreground);
+  border: 0.5px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1), 0 4px 16px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.btn-tahoe-secondary:hover {
+  background: rgba(255, 255, 255, 0.12);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15), 0 6px 20px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.btn-tahoe-secondary:active {
+  background: rgba(255, 255, 255, 0.06);
+  transform: translateY(0) scale(0.98);
+}
+
+/* Destructive Button - iOS 26 Red */
+.btn-tahoe-destructive {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 59, 48, 0.95) 0%,
+    rgba(255, 69, 58, 0.9) 50%,
+    rgba(255, 59, 48, 0.95) 100%
+  );
+  color: white;
+  box-shadow: 0 8px 32px rgba(255, 59, 48, 0.25), 0 4px 16px rgba(255, 59, 48, 0.15), inset 0 1px 0
+    rgba(255, 255, 255, 0.2);
+}
+
+.btn-tahoe-destructive:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 12px 40px rgba(255, 59, 48, 0.35), 0 6px 20px rgba(255, 59, 48, 0.25), inset 0 1px 0
+    rgba(255, 255, 255, 0.3);
+}
+
+.btn-tahoe-destructive:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* Success Button - iOS 26 Green */
+.btn-tahoe-success {
+  background: linear-gradient(
+    135deg,
+    rgba(52, 199, 89, 0.95) 0%,
+    rgba(48, 209, 88, 0.9) 50%,
+    rgba(52, 199, 89, 0.95) 100%
+  );
+  color: white;
+  box-shadow: 0 8px 32px rgba(52, 199, 89, 0.25), 0 4px 16px rgba(52, 199, 89, 0.15), inset 0 1px 0
+    rgba(255, 255, 255, 0.2);
+}
+
+.btn-tahoe-success:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 12px 40px rgba(52, 199, 89, 0.35), 0 6px 20px rgba(52, 199, 89, 0.25);
+}
+
+.btn-tahoe-success:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* Small Button Variant */
+.btn-tahoe-sm {
+  min-height: 40px;
+  padding: 0 20px;
+  font-size: 15px;
+  border-radius: 12px;
+}
+
+/* Large Button Variant */
+.btn-tahoe-lg {
+  min-height: 56px;
+  padding: 0 32px;
+  font-size: 19px;
+  border-radius: 20px;
+}
+
+/* Icon Button */
+.btn-tahoe-icon {
+  min-width: 50px;
+  padding: 0;
+  border-radius: 16px;
+}
+
+.btn-tahoe-icon-sm {
+  min-width: 40px;
+  min-height: 40px;
+  border-radius: 12px;
+}
+
+/* Disabled State */
+.btn-tahoe:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Menu Button Specific Styles */
+.menu-btn-tahoe {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+  font-size: 18px;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  border-radius: 16px;
+  transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
+  min-height: 50px;
+  padding: 0 24px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transform: translateZ(0);
+  will-change: transform, box-shadow;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--foreground);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1), 0 4px 16px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  width: 100%;
+  max-width: 280px;
+  margin: 8px 0;
+}
+
+.menu-btn-tahoe:hover {
+  background: rgba(255, 255, 255, 0.12);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15), 0 6px 20px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.menu-btn-tahoe:active {
+  background: rgba(255, 255, 255, 0.06);
+  transform: translateY(0) scale(0.98);
+}
+
+.menu-btn-tahoe-primary {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 18px;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  border-radius: 16px;
+  transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
+  min-height: 50px;
+  padding: 0 24px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transform: translateZ(0);
+  will-change: transform, box-shadow;
+  background: linear-gradient(
+    135deg,
+    rgba(0, 122, 255, 0.95) 0%,
+    rgba(10, 132, 255, 0.9) 50%,
+    rgba(0, 122, 255, 0.95) 100%
+  );
+  color: white;
+  box-shadow: 0 8px 32px rgba(0, 122, 255, 0.25), 0 4px 16px rgba(0, 122, 255, 0.15), inset 0 1px 0
+    rgba(255, 255, 255, 0.2);
+  width: 100%;
+  max-width: 280px;
+  margin: 8px 0;
+}
+
+.menu-btn-tahoe-primary:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 12px 40px rgba(0, 122, 255, 0.35), 0 6px 20px rgba(0, 122, 255, 0.25), inset 0 1px 0
+    rgba(255, 255, 255, 0.3);
+}
+
+.menu-btn-tahoe-primary:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: 0 4px 16px rgba(0, 122, 255, 0.2), 0 2px 8px rgba(0, 122, 255, 0.1), inset 0 1px 0
+    rgba(255, 255, 255, 0.1);
+}
+
+/* Settings Button Styles */
+.settings-btn-tahoe {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  border-radius: 12px;
+  transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
+  min-height: 40px;
+  padding: 0 20px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transform: translateZ(0);
+  will-change: transform, box-shadow;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--foreground);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1), 0 4px 16px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  width: 100%;
+  margin: 4px 0;
+  text-align: left;
+}
+
+.settings-btn-tahoe:hover {
+  background: rgba(255, 255, 255, 0.12);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15), 0 6px 20px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.settings-btn-tahoe:active {
+  background: rgba(255, 255, 255, 0.06);
+  transform: translateY(0) scale(0.98);
+}
+
+/* Game Control Button Styles */
+.game-control-btn {
+  position: fixed;
+  top: env(safe-area-inset-top, 20px);
+  right: 20px;
+  z-index: 50;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 17px;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  border-radius: 16px;
+  transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
+  min-height: 50px;
+  min-width: 50px;
+  padding: 0;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transform: translateZ(0);
+  will-change: transform, box-shadow;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+}
+
+.game-control-btn:hover {
+  background: rgba(0, 0, 0, 0.8);
+  transform: translateY(-2px) scale(1.02);
+}
+
+.game-control-btn:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* Dark Mode Adjustments */
+.dark .menu-btn-tahoe,
+.dark .settings-btn-tahoe {
+  background: rgba(255, 255, 255, 0.05);
+  border: 0.5px solid rgba(255, 255, 255, 0.08);
+  color: var(--foreground);
+}
+
+.dark .menu-btn-tahoe:hover,
+.dark .settings-btn-tahoe:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.dark .menu-btn-tahoe:active,
+.dark .settings-btn-tahoe:active {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* Enhanced Telegram WebApp specific optimizations */
+.telegram-webapp {
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  position: relative;
+  /* Better viewport handling */
+  width: 100vw;
+  width: 100dvw;
+}
+
+/* Enhanced performance optimizations */
+.gpu-accelerated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+  will-change: transform;
+}
+
+/* Enhanced focus styles for accessibility */
+.focus-visible:focus-visible {
+  outline: 3px solid rgba(59, 130, 246, 0.6);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* Enhanced reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .piece-moving,
+  .piece-captured {
+    animation: none;
+  }
+
+  .liquid-glass-button:hover {
+    transform: none;
+  }
+}
+
+/* Enhanced high contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --border: oklch(0 0 0);
+    --ring: oklch(0 0 0);
+  }
+
+  .dark {
+    --border: oklch(1 0 0);
+    --ring: oklch(1 0 0);
+  }
+
+  .piece.white {
+    border: 3px solid #000;
+  }
+
+  .piece.black {
+    border: 3px solid #fff;
+  }
+}
+
+/* Enhanced scrollbar styling */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+/* Enhanced iOS Safari specific fixes */
+@supports (-webkit-touch-callout: none) {
+  /* iOS Safari */
+  .ios-fix {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Enhanced fix for iOS viewport units */
+  .full-height {
+    height: 100vh;
+    height: -webkit-fill-available;
+    height: 100dvh;
+  }
+
+  /* Fix for iOS safe area handling */
+  .ios-safe-area {
+    padding-top: max(env(safe-area-inset-top), 20px);
+    padding-bottom: max(env(safe-area-inset-bottom), 20px);
+    padding-left: max(env(safe-area-inset-left), 16px);
+    padding-right: max(env(safe-area-inset-right), 16px);
+  }
+}
+
+/* Added styles for volume slider */
+.slider-thumb::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  cursor: pointer;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.slider-thumb::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  cursor: pointer;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+/* Added animation for particle explosion */
+@keyframes particle-explosion {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--random-x, 20px), var(--random-y, -30px)) scale(0);
+    opacity: 0;
+  }
+}
+
+/* Added animation for gradient */
+@keyframes gradient {
+  0%,
+  100% {
+    background-size: 200% 200%;
+    background-position: left center;
+  }
+  50% {
+    background-size: 200% 200%;
+    background-position: right center;
+  }
+}
+
+.animate-gradient {
+  animation: gradient 3s ease infinite;
+}
