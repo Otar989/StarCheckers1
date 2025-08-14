@@ -22,17 +22,19 @@ const defaultStats: GameStats = {
 
 export function useGameStats() {
   const [stats, setStats] = useState<GameStats>(defaultStats)
+  const [isLoaded, setIsLoaded] = useState(false)
 
   useEffect(() => {
-    // Load stats from localStorage
     const savedStats = localStorage.getItem("starcheckers-stats")
     if (savedStats) {
       try {
-        setStats(JSON.parse(savedStats))
+        const parsedStats = JSON.parse(savedStats)
+        setStats(parsedStats)
       } catch {
         setStats(defaultStats)
       }
     }
+    setIsLoaded(true)
   }, [])
 
   const saveStats = (newStats: GameStats) => {
@@ -77,6 +79,7 @@ export function useGameStats() {
 
   return {
     stats,
+    isLoaded,
     recordWin,
     recordLoss,
     recordDraw,

@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react"
 
+export type ThemeMode = "light" | "dark" | "system"
+
 export interface ThemeOption {
   id: string
   name: string
@@ -57,26 +59,72 @@ const availableThemes: ThemeOption[] = [
 ]
 
 export function useTheme() {
-  const [theme, setThemeState] = useState<string>("classic")
+  const [theme, setThemeState] = useState<ThemeMode>("system")
+  const [boardTheme, setBoardThemeState] = useState<string>("classic")
+  const [isDark, setIsDark] = useState(false)
 
+  // Определяем системную тему
   useEffect(() => {
-    const savedTheme = localStorage.getItem("starcheckers-theme")
-    if (savedTheme && availableThemes.find((t) => t.id === savedTheme)) {
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)")
+
+    const updateSystemTheme = () => {
+      if (theme === "system") {
+        setIsDark(mediaQuery.matches)
+        document.documentElement.classList.toggle("dark", mediaQuery.matches)
+      }
+    }
+
+    updateSystemTheme()
+    mediaQuery.addEventListener("change", updateSystemTheme)
+
+    return () => mediaQuery.removeEventListener("change", updateSystemTheme)
+  }, [theme])
+
+  // Загружаем сохраненные настройки
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("starcheckers-color-theme") as ThemeMode
+    const savedBoardTheme = localStorage.getItem("starcheckers-board-theme")
+
+    if (savedTheme && ["light", "dark", "system"].includes(savedTheme)) {
       setThemeState(savedTheme)
+    }
+
+    if (savedBoardTheme && availableThemes.find((t) => t.id === savedBoardTheme)) {
+      setBoardThemeState(savedBoardTheme)
     }
   }, [])
 
-  const setTheme = (themeId: string) => {
-    setThemeState(themeId)
-    localStorage.setItem("starcheckers-theme", themeId)
+  // Применяем тему
+  useEffect(() => {
+    if (theme === "light") {
+      setIsDark(false)
+      document.documentElement.classList.remove("dark")
+    } else if (theme === "dark") {
+      setIsDark(true)
+      document.documentElement.classList.add("dark")
+    }
+    // Для 'system' обработка в первом useEffect
+  }, [theme])
+
+  const setTheme = (newTheme: ThemeMode) => {
+    setThemeState(newTheme)
+    localStorage.setItem("starcheckers-color-theme", newTheme)
   }
 
-  const currentTheme = availableThemes.find((t) => t.id === theme) || availableThemes[0]
+  const setBoardTheme = (themeId: string) => {
+    setBoardThemeState(themeId)
+    localStorage.setItem("starcheckers-board-theme", themeId)
+  }
+
+  const currentBoardTheme = availableThemes.find((t) => t.id === boardTheme) || availableThemes[0]
 
   return {
     theme,
     setTheme,
-    currentTheme,
+    boardTheme,
+    setBoardTheme,
+    currentBoardTheme,
     availableThemes,
+    isDark,
   }
 }

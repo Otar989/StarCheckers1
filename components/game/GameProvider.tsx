@@ -1,8 +1,9 @@
 "use client"
 
 import type React from "react"
-
-import { createContext, useContext, useReducer, type ReactNode } from "react"
+import { createContext, useContext, useReducer, useEffect, type ReactNode } from "react"
+import { useGameStats } from "@/hooks/use-game-stats"
+import type { GameMode } from "@/app/page"
 
 // Game types
 export type PieceType = "regular" | "king"
@@ -24,6 +25,7 @@ export interface GameState {
   capturedPieces: Piece[]
   gameStatus: "playing" | "white-wins" | "black-wins" | "draw"
   moveHistory: Move[]
+  gameMode: GameMode // добавил режим игры для правильной статистики
 }
 
 export interface Move {
@@ -37,7 +39,7 @@ type GameAction =
   | { type: "SELECT_PIECE"; piece: Piece | null }
   | { type: "MOVE_PIECE"; from: Position; to: Position }
   | { type: "SET_VALID_MOVES"; moves: Position[] }
-  | { type: "RESET_GAME" }
+  | { type: "RESET_GAME"; gameMode?: GameMode } // добавил gameMode в reset
   | { type: "SET_GAME_STATE"; state: Partial<GameState> }
 
 const initialState: GameState = {
@@ -50,6 +52,7 @@ const initialState: GameState = {
   capturedPieces: [],
   gameStatus: "playing",
   moveHistory: [],
+  gameMode: "bot", // добавил режим игры по умолчанию
 }
 
 function gameReducer(state: GameState, action: GameAction): GameState {
@@ -58,7 +61,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       return {
         ...state,
         selectedPiece: action.piece,
-        validMoves: action.piece ? [] : [], // Will be calculated by game logic
+        validMoves: action.piece ? [] : [],
       }
 
     case "SET_VALID_MOVES":
@@ -68,13 +71,13 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       }
 
     case "MOVE_PIECE":
-      // This will be implemented with full game logic
       return state
 
     case "RESET_GAME":
       return {
         ...initialState,
         board: initializeBoard(),
+        gameMode: action.gameMode || state.gameMode, // сохраняем режим игры при сбросе
       }
 
     case "SET_GAME_STATE":
@@ -127,6 +130,7 @@ function initializeBoard(): (Piece | null)[][] {
 const GameContext = createContext<{
   state: GameState
   dispatch: React.Dispatch<GameAction>
+  setGameMode: (mode: GameMode) => void // добавил функцию для установки режима игры
 } | null>(null)
 
 export function GameProvider({ children }: { children: ReactNode }) {
@@ -135,7 +139,32 @@ export function GameProvider({ children }: { children: ReactNode }) {
     board: initializeBoard(),
   })
 
-  return <GameContext.Provider value={{ state, dispatch }}>{children}</GameContext.Provider>
+  const { recordWin, recordLoss, recordDraw } = useGameStats()
+
+  useEffect(() => {
+    if (state.gameStatus !== "playing") {
+      // Отслеживаем статистику только в режиме против бота
+      if (state.gameMode === "bot") {
+        if (state.gameStatus === "white-wins") {
+          // Игрок (белые) выиграл против бота
+          recordWin()
+        } else if (state.gameStatus === "black-wins") {
+          // Бот (черные) выиграл против игрока
+          recordLoss()
+        } else if (state.gameStatus === "draw") {
+          recordDraw()
+        }
+      }
+      // В локальном режиме статистика не ведется (играют два человека)
+      // В онлайн режиме статистика будет добавлена позже
+    }
+  }, [state.gameStatus, state.gameMode, recordWin, recordLoss, recordDraw])
+
+  const setGameMode = (mode: GameMode) => {
+    dispatch({ type: "SET_GAME_STATE", state: { gameMode: mode } })
+  }
+
+  return <GameContext.Provider value={{ state, dispatch, setGameMode }}>{children}</GameContext.Provider>
 }
 
 export function useGame() {
