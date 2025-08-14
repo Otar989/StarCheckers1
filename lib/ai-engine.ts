@@ -9,17 +9,20 @@ export interface AIMove {
 
 export class AIEngine {
   private static readonly PIECE_VALUE = 100
-  private static readonly KING_VALUE = 350
-  private static readonly POSITION_BONUS = 15
-  private static readonly CAPTURE_BONUS = 80
-  private static readonly PROMOTION_BONUS = 200
-  private static readonly MOBILITY_BONUS = 5
-  private static readonly THREAT_PENALTY = 40
-  private static readonly DIAGONAL_CONTROL_BONUS = 25
+  private static readonly KING_VALUE = 400
+  private static readonly POSITION_BONUS = 20
+  private static readonly CAPTURE_BONUS = 150
+  private static readonly PROMOTION_BONUS = 300
+  private static readonly MOBILITY_BONUS = 8
+  private static readonly THREAT_PENALTY = 60
+  private static readonly DIAGONAL_CONTROL_BONUS = 35
+  private static readonly SACRIFICE_BONUS = 200
+  private static readonly TEMPO_BONUS = 25
+  private static readonly ENDGAME_BONUS = 50
 
   static getBestMove(board: (Piece | null)[][], difficulty: "easy" | "medium" | "hard"): AIMove | null {
     const startTime = Date.now()
-    const maxThinkTime = difficulty === "easy" ? 1000 : difficulty === "medium" ? 8000 : 20000
+    const maxThinkTime = difficulty === "easy" ? 1000 : difficulty === "medium" ? 8000 : 15000
 
     const depth = this.getDepthForDifficulty(difficulty)
     const randomness = this.getRandomnessForDifficulty(difficulty)
@@ -29,120 +32,167 @@ export class AIEngine {
 
     if (difficulty !== "easy") {
       allMoves.sort((a, b) => {
-        const aCapture = Math.abs(a.to.row - a.from.row) > 1 || Math.abs(a.to.col - a.from.col) > 1
-        const bCapture = Math.abs(b.to.row - b.from.row) > 1 || Math.abs(b.to.col - b.from.col) > 1
-        if (aCapture && !bCapture) return -1
-        if (!aCapture && bCapture) return 1
-
-        const aCenterDist = Math.abs(3.5 - a.to.row) + Math.abs(3.5 - a.to.col)
-        const bCenterDist = Math.abs(3.5 - b.to.row) + Math.abs(3.5 - b.to.col)
-        return aCenterDist - bCenterDist
+        const aScore = this.quickMoveEvaluation(board, a, difficulty)
+        const bScore = this.quickMoveEvaluation(board, b, difficulty)
+        return bScore - aScore
       })
     }
 
-    if (difficulty === "easy" && Math.random() < 0.4) {
-      const randomMove = allMoves[Math.floor(Math.random() * allMoves.length)]
+    if (difficulty === "easy" && Math.random() < 0.2) {
+      const randomMove = allMoves[Math.floor(Math.random() * Math.min(5, allMoves.length))]
       return { ...randomMove, score: 0 }
     }
 
     if (difficulty !== "easy") {
-      const captureMoves = allMoves.filter((move) => {
-        const rowDiff = Math.abs(move.to.row - move.from.row)
-        const colDiff = Math.abs(move.to.col - move.from.col)
-        return rowDiff > 1 || colDiff > 1
-      })
-
-      if (captureMoves.length > 0) {
-        let bestCaptureMove: AIMove | null = null
-        let bestCaptureScore = Number.NEGATIVE_INFINITY
-
-        for (const move of captureMoves) {
-          if (Date.now() - startTime > maxThinkTime) break
-
-          const moveResult = GameLogic.makeMove(board, move.from, move.to)
-          if (!moveResult.success || !moveResult.newState) continue
-
-          const score =
-            this.minimax(
-              moveResult.newState.board!,
-              Math.min(depth, difficulty === "hard" ? 8 : 6),
-              Number.NEGATIVE_INFINITY,
-              Number.POSITIVE_INFINITY,
-              false,
-              difficulty,
-              startTime,
-              maxThinkTime,
-            ) + this.CAPTURE_BONUS
-
-          if (score > bestCaptureScore) {
-            bestCaptureScore = score
-            bestCaptureMove = { from: move.from, to: move.to, score }
-          }
-        }
-
-        if (bestCaptureMove && bestCaptureScore > 0) {
-          return bestCaptureMove
-        }
+      const forcedSequence = this.findForcedSequence(board, "black", depth)
+      if (forcedSequence && forcedSequence.score > 500) {
+        return forcedSequence
       }
     }
 
     let bestMove: AIMove | null = null
     let bestScore = Number.NEGATIVE_INFINITY
 
-    const movesToEvaluate =
-      difficulty === "easy" ? allMoves.slice(0, 8) : difficulty === "medium" ? allMoves.slice(0, 20) : allMoves
+    for (let currentDepth = 2; currentDepth <= depth; currentDepth += 2) {
+      if (Date.now() - startTime > maxThinkTime * 0.8) break
 
-    for (const move of movesToEvaluate) {
-      if (Date.now() - startTime > maxThinkTime) break
+      let tempBestMove: AIMove | null = null
+      let tempBestScore = Number.NEGATIVE_INFINITY
 
-      const moveResult = GameLogic.makeMove(board, move.from, move.to)
-      if (!moveResult.success || !moveResult.newState) continue
+      const movesToEvaluate = difficulty === "easy" ? allMoves.slice(0, 10) : allMoves
 
-      const score = this.minimax(
-        moveResult.newState.board!,
-        depth - 1,
-        Number.NEGATIVE_INFINITY,
-        Number.POSITIVE_INFINITY,
-        false,
-        difficulty,
-        startTime,
-        maxThinkTime,
-      )
+      for (const move of movesToEvaluate) {
+        if (Date.now() - startTime > maxThinkTime) break
 
-      const finalScore = score + (Math.random() - 0.5) * randomness
+        const moveResult = GameLogic.makeMove(board, move.from, move.to)
+        if (!moveResult.success || !moveResult.newState) continue
 
-      if (finalScore > bestScore) {
-        bestScore = finalScore
-        bestMove = { from: move.from, to: move.to, score: finalScore }
+        const score = this.minimax(
+          moveResult.newState.board!,
+          currentDepth - 1,
+          Number.NEGATIVE_INFINITY,
+          Number.POSITIVE_INFINITY,
+          false,
+          difficulty,
+          startTime,
+          maxThinkTime,
+        )
+
+        const finalScore = score + (Math.random() - 0.5) * randomness
+
+        if (finalScore > tempBestScore) {
+          tempBestScore = finalScore
+          tempBestMove = { from: move.from, to: move.to, score: finalScore }
+        }
+      }
+
+      if (tempBestMove) {
+        bestMove = tempBestMove
+        bestScore = tempBestScore
       }
     }
 
     return bestMove
   }
 
+  private static quickMoveEvaluation(board: (Piece | null)[][], move: AIMove, difficulty: string): number {
+    let score = 0
+
+    const rowDiff = Math.abs(move.to.row - move.from.row)
+    const colDiff = Math.abs(move.to.col - move.from.col)
+    if (rowDiff > 1 || colDiff > 1) {
+      score += this.CAPTURE_BONUS
+    }
+
+    const piece = board[move.from.row][move.from.col]
+    if (piece && piece.type === "regular" && piece.color === "black") {
+      if (move.to.row === 7) score += this.PROMOTION_BONUS
+      else score += (move.to.row - move.from.row) * 10
+    }
+
+    const centerDistance = Math.abs(3.5 - move.to.row) + Math.abs(3.5 - move.to.col)
+    score += (8 - centerDistance) * 5
+
+    return score
+  }
+
+  private static findForcedSequence(
+    board: (Piece | null)[][],
+    color: "white" | "black",
+    maxDepth: number,
+  ): AIMove | null {
+    const captureMoves = this.getAllPossibleMoves(board, color).filter((move) => {
+      const rowDiff = Math.abs(move.to.row - move.from.row)
+      const colDiff = Math.abs(move.to.col - move.from.col)
+      return rowDiff > 1 || colDiff > 1
+    })
+
+    let bestSequence: AIMove | null = null
+    let bestSequenceScore = 0
+
+    for (const move of captureMoves) {
+      const moveResult = GameLogic.makeMove(board, move.from, move.to)
+      if (!moveResult.success || !moveResult.newState) continue
+
+      const sequenceScore = this.evaluateForcedSequence(moveResult.newState.board!, color, maxDepth - 1, 1)
+      if (sequenceScore > bestSequenceScore) {
+        bestSequenceScore = sequenceScore
+        bestSequence = { ...move, score: sequenceScore }
+      }
+    }
+
+    return bestSequence
+  }
+
+  private static evaluateForcedSequence(
+    board: (Piece | null)[][],
+    color: "white" | "black",
+    depth: number,
+    multiplier: number,
+  ): number {
+    if (depth <= 0) return 0
+
+    const captureMoves = this.getAllPossibleMoves(board, color).filter((move) => {
+      const rowDiff = Math.abs(move.to.row - move.from.row)
+      const colDiff = Math.abs(move.to.col - move.from.col)
+      return rowDiff > 1 || colDiff > 1
+    })
+
+    let totalScore = captureMoves.length * this.CAPTURE_BONUS * multiplier
+
+    for (const move of captureMoves.slice(0, 3)) {
+      const moveResult = GameLogic.makeMove(board, move.from, move.to)
+      if (moveResult.success && moveResult.newState) {
+        totalScore += this.evaluateForcedSequence(moveResult.newState.board!, color, depth - 1, multiplier * 0.8)
+      }
+    }
+
+    return totalScore
+  }
+
   private static getDepthForDifficulty(difficulty: "easy" | "medium" | "hard"): number {
     switch (difficulty) {
       case "easy":
-        return 4
+        return 6
       case "medium":
-        return 8
+        return 10
       case "hard":
-        return 12
+        return 14
       default:
-        return 4
+        return 6
     }
   }
 
   private static getRandomnessForDifficulty(difficulty: "easy" | "medium" | "hard"): number {
     switch (difficulty) {
       case "easy":
-        return 80
+        return 40
       case "medium":
-        return 5
+        return 2
       case "hard":
         return 0
       default:
-        return 30
+        return 20
     }
   }
 
@@ -168,11 +218,10 @@ export class AIEngine {
     const moves = this.getAllPossibleMoves(board, currentPlayer)
 
     if (moves.length === 0) {
-      return isMaximizing ? -10000 : 10000
+      return isMaximizing ? -10000 - depth * 100 : 10000 + depth * 100
     }
 
-    const maxMovesToEvaluate = difficulty === "easy" ? 8 : difficulty === "medium" ? 15 : moves.length
-    const movesToEvaluate = moves.slice(0, maxMovesToEvaluate)
+    const movesToEvaluate = difficulty === "easy" ? moves.slice(0, 12) : moves
 
     if (isMaximizing) {
       let maxEval = Number.NEGATIVE_INFINITY
@@ -227,36 +276,118 @@ export class AIEngine {
 
   private static evaluateBoard(board: (Piece | null)[][], difficulty: "easy" | "medium" | "hard"): number {
     let score = 0
+    let blackPieces = 0
+    let whitePieces = 0
+    let blackKings = 0
+    let whiteKings = 0
 
     for (let row = 0; row < 8; row++) {
       for (let col = 0; col < 8; col++) {
         const piece = board[row][col]
         if (!piece) continue
 
-        const pieceValue = piece.type === "king" ? this.KING_VALUE * 1.2 : this.PIECE_VALUE
+        const pieceValue = piece.type === "king" ? this.KING_VALUE : this.PIECE_VALUE
         const positionBonus = this.getPositionBonus(piece, row, col, difficulty)
 
         if (piece.color === "black") {
           score += pieceValue + positionBonus
+          blackPieces++
+          if (piece.type === "king") blackKings++
         } else {
           score -= pieceValue + positionBonus
+          whitePieces++
+          if (piece.type === "king") whiteKings++
         }
       }
     }
 
     if (difficulty !== "easy") {
-      const strategicMultiplier = difficulty === "hard" ? 1.5 : 1.2
-      score += this.getAdvancedStrategicBonus(board, "black", difficulty) * strategicMultiplier
-      score -= this.getAdvancedStrategicBonus(board, "white", difficulty) * strategicMultiplier
+      const strategicMultiplier = difficulty === "hard" ? 2.0 : 1.5
+
+      const totalPieces = blackPieces + whitePieces
+      const isEndgame = totalPieces <= 8
+      const endgameMultiplier = isEndgame ? 1.5 : 1.0
+
+      score += this.getAdvancedStrategicBonus(board, "black", difficulty) * strategicMultiplier * endgameMultiplier
+      score -= this.getAdvancedStrategicBonus(board, "white", difficulty) * strategicMultiplier * endgameMultiplier
 
       score += (this.evaluateThreats(board, "black") - this.evaluateThreats(board, "white")) * strategicMultiplier
 
       score +=
         (this.evaluateDiagonalControl(board, "black") - this.evaluateDiagonalControl(board, "white")) *
         strategicMultiplier
+
+      if (difficulty === "hard") {
+        score += this.evaluateTempo(board, "black") - this.evaluateTempo(board, "white")
+        score +=
+          this.evaluateSacrificeOpportunities(board, "black") - this.evaluateSacrificeOpportunities(board, "white")
+
+        if (isEndgame) {
+          score += this.evaluateEndgame(board, "black", blackPieces, whitePieces) * this.ENDGAME_BONUS
+        }
+      }
     }
 
     return score
+  }
+
+  private static evaluateTempo(board: (Piece | null)[][], color: "white" | "black"): number {
+    let tempoScore = 0
+    const opponentColor = color === "white" ? "black" : "white"
+
+    const myMoves = this.getAllPossibleMoves(board, color).length
+    const opponentMoves = this.getAllPossibleMoves(board, opponentColor).length
+
+    tempoScore += (myMoves - opponentMoves) * this.TEMPO_BONUS
+
+    return tempoScore
+  }
+
+  private static evaluateSacrificeOpportunities(board: (Piece | null)[][], color: "white" | "black"): number {
+    let sacrificeScore = 0
+
+    const moves = this.getAllPossibleMoves(board, color)
+    for (const move of moves) {
+      const moveResult = GameLogic.makeMove(board, move.from, move.to)
+      if (moveResult.success && moveResult.newState) {
+        const followUpCaptures = this.getAllPossibleMoves(moveResult.newState.board!, color).filter((m) => {
+          const rowDiff = Math.abs(m.to.row - m.from.row)
+          const colDiff = Math.abs(m.to.col - m.from.col)
+          return rowDiff > 1 || colDiff > 1
+        })
+
+        if (followUpCaptures.length > 1) {
+          sacrificeScore += this.SACRIFICE_BONUS
+        }
+      }
+    }
+
+    return sacrificeScore
+  }
+
+  private static evaluateEndgame(
+    board: (Piece | null)[][],
+    color: "white" | "black",
+    myPieces: number,
+    opponentPieces: number,
+  ): number {
+    let endgameScore = 0
+
+    if (myPieces > opponentPieces) {
+      endgameScore += (myPieces - opponentPieces) * 100
+    }
+
+    for (let row = 0; row < 8; row++) {
+      for (let col = 0; col < 8; col++) {
+        const piece = board[row][col]
+        if (piece && piece.color === color && piece.type === "king") {
+          const centerDistance = Math.abs(3.5 - row) + Math.abs(3.5 - col)
+          endgameScore += (8 - centerDistance) * 15
+        }
+      }
+    }
+
+    return endgameScore
   }
 
   private static getPositionBonus(
@@ -270,24 +401,24 @@ export class AIEngine {
     let bonus = 0
 
     const centerDistance = Math.abs(3.5 - row) + Math.abs(3.5 - col)
-    bonus += (8 - centerDistance) * 4
+    bonus += (8 - centerDistance) * 6
 
     if (row === 0 || row === 7 || col === 0 || col === 7) {
-      bonus -= piece.type === "king" ? 5 : 15
+      bonus -= piece.type === "king" ? 8 : 25
     }
 
     if (piece.type === "regular") {
       if (piece.color === "black") {
-        bonus += row * 8
-        if (row >= 6) bonus += this.PROMOTION_BONUS / 2
+        bonus += row * 12
+        if (row >= 6) bonus += this.PROMOTION_BONUS / 1.5
       } else {
-        bonus += (7 - row) * 8
-        if (row <= 1) bonus += this.PROMOTION_BONUS / 2
+        bonus += (7 - row) * 12
+        if (row <= 1) bonus += this.PROMOTION_BONUS / 1.5
       }
     }
 
     if (piece.type === "king") {
-      bonus += (4 - centerDistance) * 10
+      bonus += (4 - centerDistance) * 15
     }
 
     return bonus
@@ -300,7 +431,6 @@ export class AIEngine {
   ): number {
     let bonus = 0
     const pieces = []
-    const opponentColor = color === "white" ? "black" : "white"
 
     for (let row = 0; row < 8; row++) {
       for (let col = 0; col < 8; col++) {
@@ -328,7 +458,7 @@ export class AIEngine {
               const additionalCaptures = GameLogic.getValidMoves(moveResult.newState.board, piece).filter(
                 (m) => Math.abs(m.row - move.row) > 1 || Math.abs(m.col - move.col) > 1,
               )
-              bonus += additionalCaptures.length * this.CAPTURE_BONUS
+              bonus += additionalCaptures.length * this.CAPTURE_BONUS * 1.5
             }
           }
         }
@@ -343,13 +473,13 @@ export class AIEngine {
         for (const piece2 of pieces) {
           if (piece1 === piece2) continue
           const distance = Math.abs(piece1.row - piece2.row) + Math.abs(piece1.col - piece2.col)
-          if (distance <= 3) bonus += 5
+          if (distance <= 2) bonus += 8
+          if (distance === 1) bonus += 15
         }
       }
 
-      if (regularPieces.length >= 3) {
-        bonus += 20
-      }
+      if (regularPieces.length >= 4) bonus += 30
+      if (kings.length >= 2) bonus += 40
     }
 
     return bonus
@@ -365,11 +495,11 @@ export class AIEngine {
         if (piece && piece.color === color) {
           const isUnderThreat = this.isPieceUnderThreat(board, piece, row, col, opponentColor)
           if (isUnderThreat) {
-            threatScore -= piece.type === "king" ? this.THREAT_PENALTY * 2 : this.THREAT_PENALTY
+            threatScore -= piece.type === "king" ? this.THREAT_PENALTY * 2.5 : this.THREAT_PENALTY
           }
 
           const threatenedPieces = this.getThreatenedPieces(board, piece, row, col, opponentColor)
-          threatScore += threatenedPieces * (this.THREAT_PENALTY / 2)
+          threatScore += threatenedPieces * (this.THREAT_PENALTY / 1.5)
         }
       }
     }
@@ -409,7 +539,7 @@ export class AIEngine {
         const piece = board[row][col]
         if (piece && piece.color === color) {
           controlledSquares++
-          if (piece.type === "king") controlledSquares += 2
+          if (piece.type === "king") controlledSquares += 3
         }
       }
       controlScore += controlledSquares * this.DIAGONAL_CONTROL_BONUS
