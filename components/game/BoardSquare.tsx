@@ -66,18 +66,7 @@ export function BoardSquare({
   }
 
   const getBorderColors = () => {
-    if (isSystemTheme) {
-      return isDarkSquare
-        ? "border-purple-400/50 shadow-inner shadow-purple-500/20"
-        : "border-indigo-300/60 shadow-inner shadow-indigo-400/20"
-    }
-    return isDarkSquare
-      ? isDarkTheme
-        ? "border-slate-600/40 shadow-inner shadow-slate-900/30"
-        : "border-orange-300/50 shadow-inner shadow-orange-400/20"
-      : isDarkTheme
-        ? "border-slate-500/30 shadow-inner shadow-slate-800/20"
-        : "border-yellow-200/60 shadow-inner shadow-yellow-300/20"
+    return ""
   }
 
   const getPiecePattern = (pieceColor: "white" | "black") => {
@@ -118,7 +107,7 @@ export function BoardSquare({
         aspect-square flex items-center justify-center relative cursor-pointer
         select-none overflow-hidden transition-all duration-200 ease-out transform-gpu
         ${getSquareColors()}
-        backdrop-blur-xl border ${getBorderColors()}
+        backdrop-blur-xl
         ${isSelected ? "ring-4 ring-cyan-400/80 ring-inset shadow-2xl shadow-cyan-400/40 scale-105 z-10" : ""}
         ${isValidMove ? "ring-4 ring-emerald-400/80 ring-inset shadow-2xl shadow-emerald-400/40" : ""}
         ${isDragTarget ? "ring-4 ring-yellow-400/80 ring-inset shadow-2xl shadow-yellow-400/40 scale-105" : ""}
@@ -205,19 +194,19 @@ export function BoardSquare({
             className={`
               w-full h-full rounded-full relative transition-all duration-200 ease-out transform-gpu
               ${getPiecePattern(piece.color)}
-              backdrop-blur-2xl hover:scale-110 border-2
+              backdrop-blur-2xl hover:scale-110
               ${
                 piece.color === "white"
                   ? isSystemTheme
-                    ? "border-indigo-200/80 shadow-2xl shadow-indigo-200/40"
+                    ? "shadow-2xl shadow-indigo-200/40"
                     : isDarkTheme
-                      ? "border-slate-200/60 shadow-2xl shadow-white/30"
-                      : "border-indigo-200/80 shadow-2xl shadow-indigo-200/40"
+                      ? "shadow-2xl shadow-white/30"
+                      : "shadow-2xl shadow-indigo-200/40"
                   : isSystemTheme
-                    ? "border-purple-400/80 shadow-2xl shadow-purple-700/50"
+                    ? "shadow-2xl shadow-purple-700/50"
                     : isDarkTheme
-                      ? "border-slate-500/60 shadow-2xl shadow-slate-900/60"
-                      : "border-slate-400/80 shadow-2xl shadow-slate-700/50"
+                      ? "shadow-2xl shadow-slate-900/60"
+                      : "shadow-2xl shadow-slate-700/50"
               }
             `}
             style={{

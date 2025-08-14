@@ -345,10 +345,10 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
             <div
               className={`backdrop-blur-2xl rounded-2xl border p-1.5 md:p-2 ${
                 theme === "dark"
-                  ? "bg-gradient-to-br from-amber-900/30 via-orange-900/20 to-red-900/30 border-white/5"
+                  ? "bg-gradient-to-br from-amber-900/30 via-orange-900/20 to-red-900/30 border border-white/5"
                   : theme === "system"
-                    ? "bg-gradient-to-br from-purple-800/30 via-indigo-800/20 to-slate-800/30 border-purple-300/10"
-                    : "bg-gradient-to-br from-amber-100/40 via-orange-100/30 to-red-100/40 border-white/30"
+                    ? "bg-gradient-to-br from-purple-800/30 via-indigo-800/20 to-slate-800/30 border border-purple-300/10"
+                    : "bg-gradient-to-br from-amber-100/40 via-orange-100/30 to-red-100/40 border border-white/30"
               }`}
               style={{
                 transform: "translateZ(10px)",
