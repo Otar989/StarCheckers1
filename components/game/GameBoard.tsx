@@ -322,10 +322,10 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
           : "bg-gradient-to-br from-blue-50/30 via-purple-50/20 to-pink-50/30"
       }`}
       style={{
-        paddingTop: "max(env(safe-area-inset-top), 60px)",
-        paddingBottom: "max(env(safe-area-inset-bottom), 20px)",
-        paddingLeft: "max(env(safe-area-inset-left), 8px)",
-        paddingRight: "max(env(safe-area-inset-right), 8px)",
+        paddingTop: "max(env(safe-area-inset-top), 120px)",
+        paddingBottom: "max(env(safe-area-inset-bottom), 30px)",
+        paddingLeft: "max(env(safe-area-inset-left), 16px)",
+        paddingRight: "max(env(safe-area-inset-right), 16px)",
         minHeight: "100vh",
         minHeight: "100dvh",
       }}
@@ -353,26 +353,26 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
         }`}
       />
 
-      <div className="flex items-center justify-between mb-2 sm:mb-4 relative px-2 sm:px-4">
+      <div className="flex items-center justify-between mb-1 sm:mb-2 relative px-1 sm:px-2">
         <button
           onClick={onBackToMenu}
-          className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-2xl backdrop-blur-xl border transition-all duration-300 hover:scale-105 shadow-lg ${
+          className={`flex items-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl backdrop-blur-xl border transition-all duration-300 hover:scale-105 shadow-lg text-xs sm:text-sm ${
             theme === "dark"
               ? "bg-white/10 border-white/20 hover:bg-white/20 text-white/90"
               : "bg-black/20 border-black/30 hover:bg-black/30 text-black/80"
           }`}
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4" />
           <span className="hidden xs:inline font-medium">Меню</span>
         </button>
 
         <div
-          className={`text-center backdrop-blur-xl rounded-2xl border px-3 sm:px-4 py-2 shadow-lg ${
+          className={`text-center backdrop-blur-xl rounded-xl border px-2 sm:px-3 py-1 sm:py-1.5 shadow-lg ${
             theme === "dark" ? "bg-black/30 border-white/20" : "bg-white/20 border-white/30"
           }`}
         >
           <h2
-            className={`font-bold text-sm sm:text-lg bg-gradient-to-r bg-clip-text text-transparent ${
+            className={`font-bold text-xs sm:text-sm bg-gradient-to-r bg-clip-text text-transparent ${
               theme === "dark" ? "from-blue-400 to-purple-400" : "from-blue-600 to-purple-600"
             }`}
           >
@@ -388,33 +388,33 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
 
         <button
           onClick={resetGame}
-          className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-2xl backdrop-blur-xl border transition-all duration-300 hover:scale-105 shadow-lg ${
+          className={`flex items-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl backdrop-blur-xl border transition-all duration-300 hover:scale-105 shadow-lg ${
             theme === "dark"
               ? "bg-white/10 border-white/20 hover:bg-white/20 text-white/90"
               : "bg-black/20 border-black/30 hover:bg-black/30 text-black/80"
           }`}
         >
-          <RotateCcw className="w-4 h-4" />
+          <RotateCcw className="w-3 h-3 sm:w-4 sm:h-4" />
         </button>
       </div>
 
-      <div className="flex-1 flex items-center justify-center px-2 sm:px-4">
-        <div className="relative w-full max-w-[min(85vw,85vh,500px)] aspect-square">
+      <div className="flex-1 flex items-center justify-center px-1 sm:px-2">
+        <div className="relative w-full max-w-[min(80vw,70vh,400px)] aspect-square">
           <div
-            className={`absolute inset-0 rounded-3xl blur-3xl transform translate-y-8 scale-110 ${
+            className={`absolute inset-0 rounded-2xl blur-2xl transform translate-y-4 scale-105 ${
               theme === "dark"
                 ? "bg-gradient-to-br from-black/60 to-gray-900/80"
                 : "bg-gradient-to-br from-black/30 to-black/50"
             }`}
           />
           <div
-            className={`absolute inset-0 rounded-2xl blur-xl transform translate-y-4 scale-105 ${
+            className={`absolute inset-0 rounded-xl blur-lg transform translate-y-2 scale-102 ${
               theme === "dark" ? "bg-black/40" : "bg-black/20"
             }`}
           />
 
           <div
-            className={`relative backdrop-blur-2xl rounded-3xl border p-1 sm:p-2 md:p-4 shadow-2xl ${
+            className={`relative backdrop-blur-2xl rounded-2xl border p-1 sm:p-2 shadow-2xl ${
               theme === "dark" ? "bg-black/40 border-white/20" : "bg-white/20 border-white/30"
             }`}
             onTouchStart={handleBoardTouchStart}
@@ -422,13 +422,13 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
             onTouchEnd={handleBoardTouchEnd}
           >
             <div
-              className={`backdrop-blur-xl rounded-2xl border p-1 sm:p-2 ${
+              className={`backdrop-blur-xl rounded-xl border p-0.5 sm:p-1 ${
                 theme === "dark"
                   ? "bg-gradient-to-br from-amber-900/40 to-orange-900/40 border-white/10"
                   : "bg-gradient-to-br from-amber-100/30 to-orange-100/30 border-white/20"
               }`}
             >
-              <div className="grid grid-cols-8 gap-0 w-full h-full rounded-xl overflow-hidden shadow-inner">
+              <div className="grid grid-cols-8 gap-0 w-full h-full rounded-lg overflow-hidden shadow-inner">
                 {state.board.map((row, rowIndex) =>
                   row.map((piece, colIndex) => (
                     <BoardSquare
@@ -449,23 +449,23 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
         </div>
       </div>
 
-      <div className="text-center space-y-2 px-2 sm:px-4 pb-2">
+      <div className="text-center space-y-1 px-1 sm:px-2 pb-1">
         <div
-          className={`inline-flex items-center gap-3 backdrop-blur-xl rounded-full px-4 py-2 border shadow-lg ${
+          className={`inline-flex items-center gap-2 backdrop-blur-xl rounded-full px-3 py-1.5 border shadow-lg ${
             theme === "dark" ? "bg-black/30 border-white/20" : "bg-white/20 border-white/30"
           }`}
         >
           <div
-            className={`w-3 h-3 rounded-full ${
+            className={`w-2.5 h-2.5 rounded-full ${
               state.currentPlayer === "white"
                 ? "bg-gradient-to-br from-gray-100 to-gray-300 border border-gray-400"
                 : "bg-gradient-to-br from-gray-700 to-gray-900 border border-gray-600"
             }`}
           />
-          <p className={`text-sm font-semibold ${theme === "dark" ? "text-white/90" : "text-black/90"}`}>
+          <p className={`text-xs font-semibold ${theme === "dark" ? "text-white/90" : "text-black/90"}`}>
             {isAIThinking ? (
-              <span className="flex items-center gap-2">
-                <div className="w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+              <span className="flex items-center gap-1">
+                <div className="w-2 h-2 border border-blue-400 border-t-transparent rounded-full animate-spin" />
                 Бот думает...
               </span>
             ) : (
@@ -476,13 +476,13 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
 
         {state.gameStatus !== "playing" && (
           <div
-            className={`backdrop-blur-xl border rounded-full px-4 py-2 shadow-lg animate-pulse ${
+            className={`backdrop-blur-xl border rounded-full px-3 py-1.5 shadow-lg animate-pulse ${
               theme === "dark"
                 ? "bg-gradient-to-r from-green-600/40 to-emerald-600/40 border-green-400/40 text-white"
                 : "bg-gradient-to-r from-green-400/30 to-emerald-400/30 border-green-400/40 text-black"
             }`}
           >
-            <p className="font-bold text-sm">
+            <p className="font-bold text-xs">
               {state.gameStatus === "white-wins" && "Белые победили!"}
               {state.gameStatus === "black-wins" && "Черные победили!"}
               {state.gameStatus === "draw" && "Ничья!"}
@@ -492,16 +492,16 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
 
         {state.capturedPieces.length > 0 && (
           <div
-            className={`backdrop-blur-xl rounded-2xl border p-2 max-w-xs mx-auto ${
+            className={`backdrop-blur-xl rounded-xl border p-1.5 max-w-xs mx-auto ${
               theme === "dark" ? "bg-black/20 border-white/10" : "bg-white/5 border-white/10"
             }`}
           >
             <p className={`text-xs mb-1 ${theme === "dark" ? "text-white/70" : "text-black/70"}`}>Взятые:</p>
-            <div className="flex justify-center gap-1 flex-wrap">
+            <div className="flex justify-center gap-0.5 flex-wrap">
               {state.capturedPieces.map((piece, index) => (
                 <div
                   key={`captured-${piece.id}-${index}`}
-                  className={`w-4 h-4 rounded-full border backdrop-blur-xl ${
+                  className={`w-3 h-3 rounded-full border backdrop-blur-xl ${
                     piece.color === "white"
                       ? "bg-gradient-to-br from-gray-100/80 to-gray-300/80 border-gray-300"
                       : "bg-gradient-to-br from-gray-700/80 to-gray-900/80 border-gray-600"

@@ -53,6 +53,7 @@ export function BoardSquare({
   }, [piece, justMoved])
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    e.preventDefault() // Предотвращаем стандартное поведение браузера
     setIsPressed(true)
     setTouchStart({
       x: e.touches[0].clientX,
@@ -61,9 +62,10 @@ export function BoardSquare({
   }
 
   const handleTouchEnd = (e: React.TouchEvent) => {
+    e.preventDefault() // Предотвращаем стандартное поведение браузера
     setIsPressed(false)
 
-    if (!touchStart || !onSwipe) {
+    if (!touchStart) {
       onClick()
       return
     }
@@ -75,23 +77,36 @@ export function BoardSquare({
 
     const distanceX = touchStart.x - touchEnd.x
     const distanceY = touchStart.y - touchEnd.y
-    const minSwipeDistance = 30
+    const minSwipeDistance = 25 // Уменьшил минимальное расстояние для лучшей чувствительности
 
-    // Определяем направление свайпа
-    if (Math.abs(distanceX) > Math.abs(distanceY)) {
-      if (Math.abs(distanceX) > minSwipeDistance) {
-        onSwipe(distanceX > 0 ? "left" : "right")
-        return
+    const totalDistance = Math.sqrt(distanceX * distanceX + distanceY * distanceY)
+
+    if (totalDistance > minSwipeDistance && onSwipe) {
+      // Определяем диагональное направление для шашек
+      const angle = Math.atan2(-distanceY, -distanceX) * (180 / Math.PI)
+      let direction: "up" | "down" | "left" | "right"
+
+      if (angle >= -45 && angle < 45) {
+        direction = "right"
+      } else if (angle >= 45 && angle < 135) {
+        direction = "up"
+      } else if (angle >= 135 || angle < -135) {
+        direction = "left"
+      } else {
+        direction = "down"
       }
-    } else {
-      if (Math.abs(distanceY) > minSwipeDistance) {
-        onSwipe(distanceY > 0 ? "up" : "down")
-        return
-      }
+
+      onSwipe(direction)
+      return
     }
 
     // Если свайп не обнаружен, выполняем обычный клик
     onClick()
+    setTouchStart(null)
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    e.preventDefault() // Предотвращаем скролл страницы при свайпе
   }
 
   const isAnimatingTo = animatingPiece?.to.row === row && animatingPiece?.to.col === col
@@ -140,6 +155,7 @@ export function BoardSquare({
       onClick={onClick}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
+      onTouchMove={handleTouchMove} // Добавил обработчик touchMove
       onMouseDown={() => setIsPressed(true)}
       onMouseUp={() => setIsPressed(false)}
       onMouseLeave={() => setIsPressed(false)}
