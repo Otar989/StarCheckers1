@@ -24,14 +24,13 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
   const { hapticFeedback } = useTelegram()
   const { theme } = useTheme()
   const [isAIThinking, setIsAIThinking] = useState(false)
-  const [isProcessingMove, setIsProcessingMove] = useState(false)
   const [dragOver, setDragOver] = useState<{ row: number; col: number } | null>(null)
 
   useEffect(() => {
     if (mode === "bot" && state.currentPlayer === "black" && state.gameStatus === "playing" && !isAIThinking) {
       setIsAIThinking(true)
 
-      const thinkingTime = difficulty === "easy" ? 500 : difficulty === "medium" ? 1000 : 1500
+      const thinkingTime = difficulty === "easy" ? 200 : difficulty === "medium" ? 400 : 600
 
       setTimeout(() => {
         const aiMove = AIEngine.getBestMove(state.board, difficulty)
@@ -108,6 +107,9 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
       const moveResult = GameLogic.makeMove(state.board, state.selectedPiece.position, position)
 
       if (moveResult.success && moveResult.newState) {
+        dispatch({ type: "SELECT_PIECE", piece: null })
+        dispatch({ type: "SET_VALID_MOVES", moves: [] })
+
         dispatch({ type: "SET_GAME_STATE", state: moveResult.newState })
         playSound(moveResult.capturedPieces.length > 0 ? "capture" : "move")
         hapticFeedback(moveResult.capturedPieces.length > 0 ? "medium" : "light")
@@ -125,10 +127,10 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
           hapticFeedback("heavy")
         }
       }
+    } else {
+      dispatch({ type: "SELECT_PIECE", piece: null })
+      dispatch({ type: "SET_VALID_MOVES", moves: [] })
     }
-
-    dispatch({ type: "SELECT_PIECE", piece: null })
-    dispatch({ type: "SET_VALID_MOVES", moves: [] })
   }
 
   const handleDragStart = (row: number, col: number) => {
@@ -151,7 +153,6 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
   const resetGame = () => {
     dispatch({ type: "RESET_GAME" })
     setIsAIThinking(false)
-    setIsProcessingMove(false)
     hapticFeedback("medium")
   }
 
