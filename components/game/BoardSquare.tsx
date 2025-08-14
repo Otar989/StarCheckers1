@@ -53,7 +53,6 @@ export function BoardSquare({
   }, [piece, justMoved])
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    e.preventDefault() // Предотвращаем стандартное поведение браузера
     setIsPressed(true)
     setTouchStart({
       x: e.touches[0].clientX,
@@ -62,7 +61,6 @@ export function BoardSquare({
   }
 
   const handleTouchEnd = (e: React.TouchEvent) => {
-    e.preventDefault() // Предотвращаем стандартное поведение браузера
     setIsPressed(false)
 
     if (!touchStart) {
@@ -77,12 +75,17 @@ export function BoardSquare({
 
     const distanceX = touchStart.x - touchEnd.x
     const distanceY = touchStart.y - touchEnd.y
-    const minSwipeDistance = 25 // Уменьшил минимальное расстояние для лучшей чувствительности
+    const minSwipeDistance = 30 // Увеличил для более четкого определения свайпа
 
     const totalDistance = Math.sqrt(distanceX * distanceX + distanceY * distanceY)
 
-    if (totalDistance > minSwipeDistance && onSwipe) {
-      // Определяем диагональное направление для шашек
+    if (totalDistance < minSwipeDistance) {
+      onClick()
+      setTouchStart(null)
+      return
+    }
+
+    if (onSwipe) {
       const angle = Math.atan2(-distanceY, -distanceX) * (180 / Math.PI)
       let direction: "up" | "down" | "left" | "right"
 
@@ -97,16 +100,22 @@ export function BoardSquare({
       }
 
       onSwipe(direction)
-      return
     }
 
-    // Если свайп не обнаружен, выполняем обычный клик
-    onClick()
     setTouchStart(null)
   }
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    e.preventDefault() // Предотвращаем скролл страницы при свайпе
+    // Только предотвращаем если это явный свайп
+    if (touchStart) {
+      const currentTouch = e.touches[0]
+      const distance = Math.sqrt(
+        Math.pow(currentTouch.clientX - touchStart.x, 2) + Math.pow(currentTouch.clientY - touchStart.y, 2),
+      )
+      if (distance > 20) {
+        e.preventDefault() // Предотвращаем скролл только при свайпе
+      }
+    }
   }
 
   const isAnimatingTo = animatingPiece?.to.row === row && animatingPiece?.to.col === col
@@ -273,7 +282,7 @@ export function BoardSquare({
                     fill="currentColor"
                     className="w-full h-full relative z-10 filter drop-shadow-lg"
                   >
-                    <path d="M12 6L13.13 8.09L15.5 7.5L14.5 9.96L17 11L14.5 12.04L15.5 14.5L13.13 13.91L12 16L10.87 13.91L8.5 14.5L9.5 12.04L7 11L9.5 9.96L8.5 7.5L10.87 8.09L12 6Z" />
+                    <path d="M12 6L13.13 8.09L15.5 7.5L14.5 9.96L17 11L14.5 12.04L15.5 14.5L13.13 13.91L12 16L10.87 13.91L8.5 14.5L9.5 12.04L8.5 7.5L10.87 8.09L12 6Z" />
                   </svg>
                 </div>
               </div>
