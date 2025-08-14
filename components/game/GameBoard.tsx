@@ -187,13 +187,7 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
 
   return (
     <div
-      className={`min-h-screen flex flex-col relative overflow-hidden ${
-        theme === "dark"
-          ? "bg-gradient-to-br from-slate-950 via-gray-900 to-black"
-          : theme === "system"
-            ? "bg-gradient-to-br from-slate-900 via-purple-900 to-indigo-900"
-            : "bg-gradient-to-br from-blue-100 via-indigo-200 to-purple-300"
-      }`}
+      className="min-h-screen flex flex-col relative overflow-hidden bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900"
       style={{
         paddingTop: "max(env(safe-area-inset-top), 60px)",
         paddingBottom: "max(env(safe-area-inset-bottom), 16px)",
@@ -203,108 +197,56 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
         minHeight: "100dvh",
       }}
     >
-      <div className="absolute inset-0 overflow-hidden">
+      <div className="absolute inset-0">
+        {/* Floating orbs with different animation speeds */}
+        <div className="absolute top-20 left-10 w-32 h-32 bg-blue-500/20 rounded-full blur-xl animate-pulse" />
         <div
-          className={`absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-3xl opacity-30 animate-pulse ${
-            theme === "dark"
-              ? "bg-gradient-to-br from-blue-600/20 to-purple-600/20"
-              : theme === "system"
-                ? "bg-gradient-to-br from-purple-600/20 to-indigo-600/20"
-                : "bg-gradient-to-br from-blue-400/40 to-purple-500/40"
-          }`}
+          className="absolute bottom-20 right-10 w-40 h-40 bg-purple-500/20 rounded-full blur-xl animate-pulse"
+          style={{ animationDelay: "1s" }}
         />
         <div
-          className={`absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full blur-3xl opacity-20 animate-pulse delay-1000 ${
-            theme === "dark"
-              ? "bg-gradient-to-br from-purple-600/20 to-pink-600/20"
-              : theme === "system"
-                ? "bg-gradient-to-br from-indigo-600/20 to-pink-600/20"
-                : "bg-gradient-to-br from-purple-500/40 to-pink-400/40"
-          }`}
+          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-60 h-60 bg-pink-500/10 rounded-full blur-xl animate-pulse"
+          style={{ animationDelay: "2s" }}
         />
 
+        {/* Moving gradient overlay */}
         <div
-          className={`absolute inset-0 opacity-20 ${theme === "dark" ? "opacity-30" : "opacity-20"}`}
+          className="absolute inset-0 opacity-30"
           style={{
-            background:
-              theme === "dark"
-                ? "linear-gradient(120deg, transparent 20%, rgba(59, 130, 246, 0.1) 40%, rgba(147, 51, 234, 0.1) 60%, transparent 80%)"
-                : theme === "system"
-                  ? "linear-gradient(120deg, transparent 20%, rgba(147, 51, 234, 0.2) 40%, rgba(59, 130, 246, 0.2) 60%, transparent 80%)"
-                  : "linear-gradient(120deg, transparent 20%, rgba(59, 130, 246, 0.3) 40%, rgba(147, 51, 234, 0.3) 60%, transparent 80%)",
-            animation: "moveWave 10s ease-in-out infinite alternate",
+            background: "linear-gradient(45deg, transparent 30%, rgba(59, 130, 246, 0.1) 50%, transparent 70%)",
+            animation: "moveGradient 8s ease-in-out infinite alternate",
           }}
         />
 
-        {Array.from({ length: 8 }).map((_, i) => (
+        {/* Floating particles */}
+        {Array.from({ length: 12 }).map((_, i) => (
           <div
             key={i}
-            className={`absolute w-1.5 h-1.5 rounded-full blur-sm ${
-              theme === "dark" ? "bg-white/10" : theme === "system" ? "bg-purple-100/10" : "bg-indigo-600/20"
-            }`}
+            className="absolute w-2 h-2 bg-white/20 rounded-full blur-sm"
             style={{
-              left: `${20 + Math.random() * 60}%`,
-              top: `${20 + Math.random() * 60}%`,
-              animation: `gentleFloat ${4 + Math.random() * 3}s ease-in-out infinite`,
-              animationDelay: `${Math.random() * 3}s`,
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              animation: `float ${3 + Math.random() * 4}s ease-in-out infinite`,
+              animationDelay: `${Math.random() * 2}s`,
             }}
           />
         ))}
-
-        <div
-          className={`absolute top-0 left-1/2 w-px h-full transform -translate-x-1/2 opacity-10 ${
-            theme === "dark"
-              ? "bg-gradient-to-b from-blue-400/20 via-transparent to-purple-400/20"
-              : theme === "system"
-                ? "bg-gradient-to-b from-indigo-400/20 via-transparent to-purple-400/20"
-                : "bg-gradient-to-b from-blue-600/30 via-transparent to-purple-600/30"
-          }`}
-          style={{
-            animation: "shimmer 6s ease-in-out infinite alternate",
-          }}
-        />
       </div>
 
       <div className="flex items-center justify-between mb-2 md:mb-4 relative z-10">
         <button
           onClick={onBackToMenu}
-          className={`flex items-center gap-2 px-3 py-2 md:px-4 md:py-2.5 rounded-2xl backdrop-blur-2xl border transition-all duration-300 hover:scale-105 shadow-xl ${
-            theme === "dark"
-              ? "bg-white/5 border-white/10 hover:bg-white/10 text-white/90 shadow-black/20"
-              : theme === "system"
-                ? "bg-white/10 border-purple-300/20 hover:bg-white/15 text-white/90 shadow-black/20"
-                : "bg-white/60 border-white/70 hover:bg-white/80 text-gray-800 shadow-indigo-200/30"
-          }`}
+          className="liquid-glass-button flex items-center gap-2 px-3 py-2 md:px-4 md:py-2.5 rounded-2xl transition-all duration-300 hover:scale-105 text-white/90 shadow-black/20"
         >
           <ArrowLeft className="w-4 h-4" />
           <span className="font-medium text-sm">Меню</span>
         </button>
 
-        <div
-          className={`text-center backdrop-blur-2xl rounded-2xl border px-3 py-2 md:px-4 md:py-2.5 shadow-xl ${
-            theme === "dark"
-              ? "bg-black/20 border-white/10"
-              : theme === "system"
-                ? "bg-purple-900/30 border-purple-300/20"
-                : "bg-white/60 border-white/70"
-          }`}
-        >
-          <h2
-            className={`font-bold text-sm bg-gradient-to-r bg-clip-text text-transparent ${
-              theme === "dark"
-                ? "from-blue-400 to-purple-400"
-                : theme === "system"
-                  ? "from-purple-300 to-indigo-300"
-                  : "from-blue-700 to-purple-700"
-            }`}
-          >
+        <div className="liquid-glass text-center rounded-2xl px-3 py-2 md:px-4 md:py-2.5">
+          <h2 className="font-bold text-sm bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
             StarCheckers
           </h2>
-          <p
-            className={`text-xs ${
-              theme === "dark" ? "text-white/60" : theme === "system" ? "text-purple-200/70" : "text-gray-700"
-            }`}
-          >
+          <p className="text-xs text-white/60">
             {mode === "bot" &&
               `ИИ (${difficulty === "easy" ? "Легко" : difficulty === "medium" ? "Средне" : "Сложно"})`}
             {mode === "local" && "Локальная игра"}
@@ -314,13 +256,7 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
 
         <button
           onClick={resetGame}
-          className={`flex items-center justify-center p-2 md:p-2.5 rounded-2xl backdrop-blur-2xl border transition-all duration-300 hover:scale-105 shadow-xl ${
-            theme === "dark"
-              ? "bg-white/5 border-white/10 hover:bg-white/10 text-white/90"
-              : theme === "system"
-                ? "bg-white/10 border-purple-300/20 hover:bg-white/15 text-white/90"
-                : "bg-white/60 border-white/70 hover:bg-white/80 text-gray-800"
-          }`}
+          className="liquid-glass-button flex items-center justify-center p-2 md:p-2.5 rounded-2xl transition-all duration-300 hover:scale-105 text-white/90"
         >
           <RotateCcw className="w-4 h-4" />
         </button>
@@ -335,50 +271,50 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
           lg:max-w-[min(75vw,65vh,600px)]
           aspect-square"
         >
+          {/* Multiple shadow layers for depth */}
           <div
-            className={`absolute inset-0 rounded-3xl blur-3xl transform translate-y-8 scale-110 ${
+            className={`absolute inset-0 rounded-3xl blur-3xl transform translate-y-12 scale-115 ${
               theme === "dark"
-                ? "bg-gradient-to-br from-black/80 to-gray-900/90"
+                ? "bg-gradient-to-br from-black/90 to-gray-900/95"
                 : theme === "system"
-                  ? "bg-gradient-to-br from-purple-900/80 to-indigo-900/90"
-                  : "bg-gradient-to-br from-black/20 to-gray-600/30"
+                  ? "bg-gradient-to-br from-purple-900/90 to-indigo-900/95"
+                  : "bg-gradient-to-br from-black/30 to-gray-600/40"
             }`}
           />
           <div
-            className={`absolute inset-0 rounded-2xl blur-xl transform translate-y-4 scale-105 ${
-              theme === "dark" ? "bg-black/60" : theme === "system" ? "bg-purple-900/60" : "bg-black/15"
+            className={`absolute inset-0 rounded-2xl blur-2xl transform translate-y-6 scale-110 ${
+              theme === "dark" ? "bg-black/70" : theme === "system" ? "bg-purple-900/70" : "bg-black/20"
+            }`}
+          />
+          <div
+            className={`absolute inset-0 rounded-xl blur-xl transform translate-y-3 scale-105 ${
+              theme === "dark" ? "bg-black/50" : theme === "system" ? "bg-purple-900/50" : "bg-black/15"
             }`}
           />
 
           <div
-            className={`relative backdrop-blur-3xl rounded-3xl border-2 p-2 md:p-3 shadow-2xl transform-gpu ${
-              theme === "dark"
-                ? "bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-900/50 border-white/10"
-                : theme === "system"
-                  ? "bg-gradient-to-br from-purple-800/40 via-indigo-800/30 to-slate-900/50 border-purple-300/20"
-                  : "bg-gradient-to-br from-white/70 via-blue-50/60 to-indigo-100/70 border-indigo-300/60"
-            }`}
+            className="liquid-glass-3d relative rounded-3xl p-2 md:p-3 transform-gpu"
             style={{
-              transform: "perspective(1000px) rotateX(5deg)",
+              transform: "perspective(1200px) rotateX(8deg) rotateY(-2deg)",
               transformStyle: "preserve-3d",
             }}
           >
             <div
-              className={`backdrop-blur-2xl rounded-2xl border p-1.5 md:p-2 ${
+              className={`liquid-glass-3d rounded-2xl p-1.5 md:p-2 ${
                 theme === "dark"
-                  ? "bg-gradient-to-br from-amber-900/30 via-orange-900/20 to-red-900/30 border border-white/5"
+                  ? "bg-gradient-to-br from-amber-900/40 via-orange-900/30 to-red-900/40"
                   : theme === "system"
-                    ? "bg-gradient-to-br from-purple-800/30 via-indigo-800/20 to-slate-800/30 border border-purple-300/10"
-                    : "bg-gradient-to-br from-amber-200/60 via-orange-200/50 to-red-200/60 border border-amber-300/50"
+                    ? "bg-gradient-to-br from-purple-800/40 via-indigo-800/30 to-slate-800/40"
+                    : "bg-gradient-to-br from-amber-200/70 via-orange-200/60 to-red-200/70"
               }`}
               style={{
-                transform: "translateZ(10px)",
+                transform: "translateZ(15px)",
               }}
             >
               <div
                 className="grid grid-cols-8 gap-0.5 w-full h-full rounded-xl overflow-hidden shadow-inner"
                 style={{
-                  transform: "translateZ(5px)",
+                  transform: "translateZ(10px)",
                 }}
               >
                 {state.board.map((row, rowIndex) =>
@@ -405,15 +341,7 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
       </div>
 
       <div className="text-center space-y-2 md:space-y-3 px-1 md:px-2 pb-1 md:pb-2 relative z-10">
-        <div
-          className={`inline-flex items-center gap-2 md:gap-3 backdrop-blur-2xl rounded-full px-3 py-2 md:px-4 md:py-3 border shadow-xl min-h-[40px] md:min-h-[48px] min-w-[140px] md:min-w-[160px] justify-center ${
-            theme === "dark"
-              ? "bg-black/30 border-white/10"
-              : theme === "system"
-                ? "bg-purple-900/30 border-purple-300/20"
-                : "bg-white/70 border-indigo-300/50"
-          }`}
-        >
+        <div className="liquid-glass inline-flex items-center gap-2 md:gap-3 rounded-full px-3 py-2 md:px-4 md:py-3 min-h-[40px] md:min-h-[48px] min-w-[140px] md:min-w-[160px] justify-center">
           <div
             className={`w-2.5 h-2.5 md:w-3 md:h-3 rounded-full flex-shrink-0 shadow-lg ${
               state.currentPlayer === "white"
@@ -421,11 +349,7 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
                 : "bg-gradient-to-br from-gray-700 to-gray-900 border border-gray-600"
             }`}
           />
-          <p
-            className={`text-xs md:text-sm font-semibold whitespace-nowrap ${
-              theme === "dark" ? "text-white/90" : theme === "system" ? "text-purple-100/90" : "text-gray-800"
-            }`}
-          >
+          <p className="text-xs md:text-sm font-semibold whitespace-nowrap text-white/90">
             {isAIThinking ? (
               <span className="flex items-center gap-2">
                 <div className="w-2.5 h-2.5 md:w-3 md:h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
@@ -438,16 +362,8 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
         </div>
 
         {state.gameStatus !== "playing" && (
-          <div
-            className={`backdrop-blur-2xl border rounded-full px-3 py-2 md:px-4 md:py-3 shadow-xl animate-pulse min-h-[40px] md:min-h-[48px] flex items-center justify-center ${
-              theme === "dark"
-                ? "bg-gradient-to-r from-green-600/30 to-emerald-600/30 border-green-400/30 text-white"
-                : theme === "system"
-                  ? "bg-gradient-to-r from-green-500/30 to-emerald-500/30 border-green-300/30 text-white"
-                  : "bg-gradient-to-r from-green-400/60 to-emerald-400/60 border-green-500/70 text-green-900"
-            }`}
-          >
-            <p className="font-bold text-xs md:text-sm whitespace-nowrap">
+          <div className="liquid-glass border rounded-full px-3 py-2 md:px-4 md:py-3 animate-pulse min-h-[40px] md:min-h-[48px] flex items-center justify-center">
+            <p className="font-bold text-xs md:text-sm whitespace-nowrap text-emerald-400">
               {state.gameStatus === "white-wins" && "Белые победили!"}
               {state.gameStatus === "black-wins" && "Черные победили!"}
               {state.gameStatus === "draw" && "Ничья!"}
@@ -455,22 +371,8 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
           </div>
         )}
 
-        <div
-          className={`backdrop-blur-2xl rounded-2xl border p-2 md:p-3 max-w-xs md:max-w-sm mx-auto min-h-[50px] md:min-h-[60px] ${
-            theme === "dark"
-              ? "bg-black/20 border-white/10"
-              : theme === "system"
-                ? "bg-purple-900/20 border-purple-300/20"
-                : "bg-white/60 border-indigo-300/50"
-          }`}
-        >
-          <p
-            className={`text-xs mb-1 md:mb-2 ${
-              theme === "dark" ? "text-white/60" : theme === "system" ? "text-purple-200/50" : "text-gray-600"
-            }`}
-          >
-            Взятые:
-          </p>
+        <div className="liquid-glass rounded-2xl p-2 md:p-3 max-w-xs md:max-w-sm mx-auto min-h-[50px] md:min-h-[60px]">
+          <p className="text-xs mb-1 md:mb-2 text-white/60">Взятые:</p>
           <div className="flex justify-center gap-1 flex-wrap min-h-[16px] md:min-h-[20px] items-center">
             {state.capturedPieces.length > 0 ? (
               state.capturedPieces.map((piece, index) => (
@@ -485,13 +387,7 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
                 />
               ))
             ) : (
-              <p
-                className={`text-xs italic ${
-                  theme === "dark" ? "text-white/40" : theme === "system" ? "text-purple-200/50" : "text-gray-500"
-                }`}
-              >
-                Пока нет взятых фигур
-              </p>
+              <p className="text-xs italic text-white/40">Пока нет взятых фигур</p>
             )}
           </div>
         </div>
