@@ -42,7 +42,6 @@ export function BoardSquare({
   const [justCaptured, setJustCaptured] = useState(false)
   const [justMoved, setJustMoved] = useState(false)
   const [touchStart, setTouchStart] = useState<{ x: number; y: number; time: number } | null>(null)
-  const [isDragging, setIsDragging] = useState(false)
   const { theme } = useTheme()
   const isDarkSquare = (row + col) % 2 === 1
   const isDarkTheme = theme === "dark"
@@ -62,8 +61,6 @@ export function BoardSquare({
   }, [piece, justMoved])
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (!piece) return
-
     setIsPressed(true)
     setTouchStart({
       x: e.touches[0].clientX,
@@ -71,33 +68,7 @@ export function BoardSquare({
       time: Date.now(),
     })
 
-    if (onDragStart) {
-      onDragStart(row, col)
-    }
-  }
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!touchStart || !piece) return
-
-    const currentTouch = e.touches[0]
-    const deltaX = currentTouch.clientX - touchStart.x
-    const deltaY = currentTouch.clientY - touchStart.y
-    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY)
-
-    if (distance > 15 && !isDragging) {
-      setIsDragging(true)
-      e.preventDefault() // Предотвращаем скролл только при drag
-    }
-
-    if (isDragging && onDragOver) {
-      const elementBelow = document.elementFromPoint(currentTouch.clientX, currentTouch.clientY)
-      const squareElement = elementBelow?.closest("[data-square]")
-      if (squareElement) {
-        const targetRow = Number.parseInt(squareElement.getAttribute("data-row") || "0")
-        const targetCol = Number.parseInt(squareElement.getAttribute("data-col") || "0")
-        onDragOver(targetRow, targetCol)
-      }
-    }
+    // Не блокируем стандартное поведение в Telegram
   }
 
   const handleTouchEnd = (e: React.TouchEvent) => {
@@ -113,50 +84,31 @@ export function BoardSquare({
       y: e.changedTouches[0].clientY,
     }
 
-    const distanceX = touchStart.x - touchEnd.x
-    const distanceY = touchStart.y - touchEnd.y
+    const distanceX = Math.abs(touchStart.x - touchEnd.x)
+    const distanceY = Math.abs(touchStart.y - touchEnd.y)
     const totalDistance = Math.sqrt(distanceX * distanceX + distanceY * distanceY)
     const timeDiff = Date.now() - touchStart.time
 
-    if (isDragging && onDrop) {
-      const elementBelow = document.elementFromPoint(touchEnd.x, touchEnd.y)
-      const squareElement = elementBelow?.closest("[data-square]")
-      if (squareElement) {
-        const targetRow = Number.parseInt(squareElement.getAttribute("data-row") || "0")
-        const targetCol = Number.parseInt(squareElement.getAttribute("data-col") || "0")
-        onDrop(targetRow, targetCol)
-      }
-      setIsDragging(false)
-      setTouchStart(null)
-      return
-    }
-
-    if (totalDistance < 15 && timeDiff < 300) {
+    // Простая логика: если движение минимальное и быстрое - это клик
+    if (totalDistance < 20 && timeDiff < 500) {
       onClick()
-      setIsDragging(false)
-      setTouchStart(null)
-      return
     }
 
-    if (totalDistance >= 30 && onSwipe && !isDragging) {
-      const angle = Math.atan2(-distanceY, -distanceX) * (180 / Math.PI)
-      let direction: "up" | "down" | "left" | "right"
-
-      if (angle >= -45 && angle < 45) {
-        direction = "right"
-      } else if (angle >= 45 && angle < 135) {
-        direction = "up"
-      } else if (angle >= 135 || angle < -135) {
-        direction = "left"
-      } else {
-        direction = "down"
-      }
-
-      onSwipe(direction)
-    }
-
-    setIsDragging(false)
     setTouchStart(null)
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    // Минимальная обработка для предотвращения случайных кликов при скролле
+    if (!touchStart) return
+
+    const currentTouch = e.touches[0]
+    const deltaX = Math.abs(currentTouch.clientX - touchStart.x)
+    const deltaY = Math.abs(currentTouch.clientY - touchStart.y)
+
+    // Если движение значительное, отменяем клик
+    if (deltaX > 30 || deltaY > 30) {
+      setTouchStart(null)
+    }
   }
 
   const isAnimatingTo = animatingPiece?.to.row === row && animatingPiece?.to.col === col
@@ -166,7 +118,7 @@ export function BoardSquare({
     <div
       className={`
         aspect-square flex items-center justify-center relative cursor-pointer
-        select-none overflow-hidden transition-all duration-500 transform-gpu
+        select-none overflow-hidden transition-all duration-300 transform-gpu
         ${
           isDarkSquare
             ? isDarkTheme
@@ -189,21 +141,10 @@ export function BoardSquare({
         ${isSelected ? "ring-4 ring-cyan-400/60 ring-inset shadow-2xl shadow-cyan-400/30 scale-105" : ""}
         ${isValidMove ? "ring-4 ring-emerald-400/60 ring-inset shadow-2xl shadow-emerald-400/30" : ""}
         ${isDragTarget ? "ring-4 ring-yellow-400/60 ring-inset shadow-2xl shadow-yellow-400/30 scale-105" : ""}
-        ${isPressed ? "scale-95 shadow-inner" : "hover:scale-102"}
+        ${isPressed ? "scale-95 shadow-inner" : "hover:scale-102 active:scale-95"}
         ${justCaptured ? "animate-pulse" : ""}
-        ${isDragging ? "opacity-50 scale-110" : ""}
         perspective-1000 transform-style-preserve-3d
       `}
-      style={{
-        transform: `rotateX(${isPressed ? "5deg" : "0deg"}) rotateY(${isPressed ? "2deg" : "0deg"})`,
-        boxShadow: isDarkSquare
-          ? isDarkTheme
-            ? "inset 0 4px 12px rgba(0,0,0,0.3), 0 8px 32px rgba(0,0,0,0.2)"
-            : "inset 0 4px 12px rgba(99,102,241,0.1), 0 8px 32px rgba(99,102,241,0.15)"
-          : isDarkTheme
-            ? "inset 0 4px 12px rgba(0,0,0,0.1), 0 8px 32px rgba(0,0,0,0.1)"
-            : "inset 0 4px 12px rgba(255,255,255,0.3), 0 8px 32px rgba(99,102,241,0.1)",
-      }}
       data-square="true"
       data-row={row}
       data-col={col}

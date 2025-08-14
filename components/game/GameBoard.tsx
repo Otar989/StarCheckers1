@@ -1,6 +1,5 @@
 "use client"
 import { ArrowLeft, RotateCcw } from "lucide-react"
-import type React from "react"
 
 import { useGame } from "./GameProvider"
 import { useAudio } from "./AudioProvider"
@@ -26,15 +25,6 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
   const { theme } = useTheme()
   const [isAIThinking, setIsAIThinking] = useState(false)
   const [isProcessingMove, setIsProcessingMove] = useState(false)
-  const [dragState, setDragState] = useState<{
-    isDragging: boolean
-    draggedPiece: { row: number; col: number } | null
-    dragTarget: { row: number; col: number } | null
-  }>({
-    isDragging: false,
-    draggedPiece: null,
-    dragTarget: null,
-  })
 
   useEffect(() => {
     if (mode === "bot" && state.currentPlayer === "black" && state.gameStatus === "playing" && !isAIThinking) {
@@ -75,80 +65,8 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
     isAIThinking,
   ])
 
-  const handleDragStart = (row: number, col: number) => {
-    const piece = state.board[row][col]
-    if (!piece || piece.color !== state.currentPlayer) return
-
-    // Автоматически выбираем шашку при начале drag
-    if (!state.selectedPiece || state.selectedPiece.position.row !== row || state.selectedPiece.position.col !== col) {
-      dispatch({ type: "SELECT_PIECE", piece })
-      const validMoves = GameLogic.getValidMoves(state.board, piece)
-      dispatch({ type: "SET_VALID_MOVES", moves: validMoves })
-      playSound("select")
-    }
-
-    setDragState({
-      isDragging: true,
-      draggedPiece: { row, col },
-      dragTarget: null,
-    })
-
-    hapticFeedback("light")
-  }
-
-  const handleDragOver = (row: number, col: number) => {
-    if (!dragState.isDragging) return
-
-    const isValidMove = state.validMoves.some((move) => move.row === row && move.col === col)
-
-    setDragState((prev) => ({
-      ...prev,
-      dragTarget: isValidMove ? { row, col } : null,
-    }))
-  }
-
-  const handleDrop = (row: number, col: number) => {
-    if (!dragState.isDragging || !dragState.draggedPiece) {
-      setDragState({ isDragging: false, draggedPiece: null, dragTarget: null })
-      return
-    }
-
-    const isValidMove = state.validMoves.some((move) => move.row === row && move.col === col)
-
-    if (isValidMove && state.selectedPiece) {
-      const position = { row, col }
-      const moveResult = GameLogic.makeMove(state.board, state.selectedPiece.position, position)
-
-      if (moveResult.success && moveResult.newState) {
-        dispatch({ type: "SET_GAME_STATE", state: moveResult.newState })
-        playSound(moveResult.capturedPieces.length > 0 ? "capture" : "move")
-        hapticFeedback(moveResult.capturedPieces.length > 0 ? "medium" : "light")
-
-        if (
-          moveResult.newState.board[position.row][position.col]?.type === "king" &&
-          state.selectedPiece.type === "regular"
-        ) {
-          playSound("promote")
-          hapticFeedback("heavy")
-        }
-
-        if (moveResult.newState.gameStatus !== "playing") {
-          playSound("win")
-          hapticFeedback("heavy")
-        }
-      }
-
-      // Сбрасываем выбор после успешного хода
-      dispatch({ type: "SELECT_PIECE", piece: null })
-      dispatch({ type: "SET_VALID_MOVES", moves: [] })
-    }
-
-    setDragState({ isDragging: false, draggedPiece: null, dragTarget: null })
-  }
-
   const handleSquareClick = (row: number, col: number) => {
     if (isAIThinking || (mode === "bot" && state.currentPlayer === "black")) {
-      console.log("Click blocked: AI thinking or bot turn")
       return
     }
 
@@ -159,7 +77,6 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
 
     hapticFeedback("light")
 
-    // Если нет выбранной шашки
     if (!state.selectedPiece) {
       if (piece && piece.color === state.currentPlayer) {
         dispatch({ type: "SELECT_PIECE", piece })
@@ -170,14 +87,12 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
       return
     }
 
-    // Если кликнули на ту же шашку - отменяем выбор
     if (state.selectedPiece && piece?.id === state.selectedPiece.id) {
       dispatch({ type: "SELECT_PIECE", piece: null })
       dispatch({ type: "SET_VALID_MOVES", moves: [] })
       return
     }
 
-    // Если кликнули на другую шашку того же цвета - выбираем её
     if (piece && piece.color === state.currentPlayer) {
       dispatch({ type: "SELECT_PIECE", piece })
       const validMoves = GameLogic.getValidMoves(state.board, piece)
@@ -186,13 +101,9 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
       return
     }
 
-    // Проверяем валидный ход
     const isValidMove = state.validMoves.some((move) => move.row === row && move.col === col)
-    console.log("Valid move check:", isValidMove, "for position:", row, col)
 
     if (isValidMove && state.selectedPiece) {
-      console.log("Executing move from", state.selectedPiece.position, "to", position)
-
       const moveResult = GameLogic.makeMove(state.board, state.selectedPiece.position, position)
 
       if (moveResult.success && moveResult.newState) {
@@ -212,58 +123,11 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
           playSound("win")
           hapticFeedback("heavy")
         }
-      } else {
-        console.log("Move failed:", moveResult)
       }
     }
 
-    // Сбрасываем выбор
     dispatch({ type: "SELECT_PIECE", piece: null })
     dispatch({ type: "SET_VALID_MOVES", moves: [] })
-  }
-
-  const handleBoardTouchStart = (e: React.TouchEvent) => {
-    // Не блокируем стандартное поведение в Telegram
-  }
-
-  const handleBoardTouchMove = (e: React.TouchEvent) => {
-    // Минимальная обработка для предотвращения конфликтов
-  }
-
-  const handleBoardTouchEnd = (e: React.TouchEvent) => {
-    // Упрощенная обработка touch событий
-  }
-
-  const handleSwipe = (fromRow: number, fromCol: number, direction: "up" | "down" | "left" | "right") => {
-    if (
-      !state.selectedPiece ||
-      state.selectedPiece.position.row !== fromRow ||
-      state.selectedPiece.position.col !== fromCol
-    ) {
-      return
-    }
-
-    let newRow = fromRow
-    let newCol = fromCol
-
-    switch (direction) {
-      case "up":
-        newRow = Math.max(0, fromRow - 1)
-        break
-      case "down":
-        newRow = Math.min(7, fromRow + 1)
-        break
-      case "left":
-        newCol = Math.max(0, fromCol - 1)
-        break
-      case "right":
-        newCol = Math.min(7, fromCol + 1)
-        break
-    }
-
-    if (newRow !== fromRow || newCol !== fromCol) {
-      handleSquareClick(newRow, newCol)
-    }
   }
 
   const resetGame = () => {
@@ -279,10 +143,6 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
 
   const isSelectedSquare = (row: number, col: number) => {
     return state.selectedPiece?.position.row === row && state.selectedPiece?.position.col === col
-  }
-
-  const isDragTarget = (row: number, col: number) => {
-    return dragState.dragTarget?.row === row && dragState.dragTarget?.col === col
   }
 
   return (
@@ -388,9 +248,6 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
             className={`relative backdrop-blur-2xl rounded-2xl border p-1 sm:p-2 shadow-2xl ${
               theme === "dark" ? "bg-black/40 border-white/20" : "bg-white/20 border-white/30"
             }`}
-            onTouchStart={handleBoardTouchStart}
-            onTouchMove={handleBoardTouchMove}
-            onTouchEnd={handleBoardTouchEnd}
           >
             <div
               className={`backdrop-blur-xl rounded-xl border p-0.5 sm:p-1 ${
@@ -409,12 +266,7 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
                       piece={piece}
                       isSelected={isSelectedSquare(rowIndex, colIndex)}
                       isValidMove={isValidMoveSquare(rowIndex, colIndex)}
-                      isDragTarget={isDragTarget(rowIndex, colIndex)}
                       onClick={() => handleSquareClick(rowIndex, colIndex)}
-                      onSwipe={(direction) => handleSwipe(rowIndex, colIndex, direction)}
-                      onDragStart={handleDragStart}
-                      onDragOver={handleDragOver}
-                      onDrop={handleDrop}
                     />
                   )),
                 )}
