@@ -25,6 +25,7 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
   const { theme } = useTheme()
   const [isAIThinking, setIsAIThinking] = useState(false)
   const [isProcessingMove, setIsProcessingMove] = useState(false)
+  const [dragOver, setDragOver] = useState<{ row: number; col: number } | null>(null)
 
   useEffect(() => {
     if (mode === "bot" && state.currentPlayer === "black" && state.gameStatus === "playing" && !isAIThinking) {
@@ -128,6 +129,23 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
 
     dispatch({ type: "SELECT_PIECE", piece: null })
     dispatch({ type: "SET_VALID_MOVES", moves: [] })
+  }
+
+  const handleDragStart = (row: number, col: number) => {
+    handleSquareClick(row, col)
+  }
+
+  const handleDragOver = (row: number, col: number) => {
+    if (row >= 0 && col >= 0) {
+      setDragOver({ row, col })
+    } else {
+      setDragOver(null)
+    }
+  }
+
+  const handleDrop = (row: number, col: number) => {
+    handleSquareClick(row, col)
+    setDragOver(null)
   }
 
   const resetGame = () => {
@@ -267,6 +285,10 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
                       isSelected={isSelectedSquare(rowIndex, colIndex)}
                       isValidMove={isValidMoveSquare(rowIndex, colIndex)}
                       onClick={() => handleSquareClick(rowIndex, colIndex)}
+                      onDragStart={handleDragStart}
+                      onDragOver={handleDragOver}
+                      onDrop={handleDrop}
+                      isDragTarget={dragOver?.row === rowIndex && dragOver?.col === colIndex}
                     />
                   )),
                 )}
