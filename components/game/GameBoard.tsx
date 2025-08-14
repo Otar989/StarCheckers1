@@ -74,7 +74,10 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
   ])
 
   const handleSquareClick = (row: number, col: number) => {
-    if (isAIThinking || isProcessingMove || (mode === "bot" && state.currentPlayer === "black")) return
+    if (isAIThinking || (mode === "bot" && state.currentPlayer === "black")) {
+      console.log("Click blocked: AI thinking or bot turn")
+      return
+    }
 
     initializeAudio()
 
@@ -83,6 +86,7 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
 
     hapticFeedback("light")
 
+    // Если нет выбранной шашки
     if (!state.selectedPiece) {
       if (piece && piece.color === state.currentPlayer) {
         dispatch({ type: "SELECT_PIECE", piece })
@@ -93,12 +97,14 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
       return
     }
 
+    // Если кликнули на ту же шашку - отменяем выбор
     if (state.selectedPiece && piece?.id === state.selectedPiece.id) {
       dispatch({ type: "SELECT_PIECE", piece: null })
       dispatch({ type: "SET_VALID_MOVES", moves: [] })
       return
     }
 
+    // Если кликнули на другую шашку того же цвета - выбираем её
     if (piece && piece.color === state.currentPlayer) {
       dispatch({ type: "SELECT_PIECE", piece })
       const validMoves = GameLogic.getValidMoves(state.board, piece)
@@ -107,9 +113,12 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
       return
     }
 
+    // Проверяем валидный ход
     const isValidMove = state.validMoves.some((move) => move.row === row && move.col === col)
+    console.log("Valid move check:", isValidMove, "for position:", row, col)
+
     if (isValidMove && state.selectedPiece) {
-      setIsProcessingMove(true)
+      console.log("Executing move from", state.selectedPiece.position, "to", position)
 
       const moveResult = GameLogic.makeMove(state.board, state.selectedPiece.position, position)
 
@@ -126,145 +135,30 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
           hapticFeedback("heavy")
         }
 
-        if (moveResult.hasMoreCaptures) {
-          setIsProcessingMove(false)
-          return
-        }
-
         if (moveResult.newState.gameStatus !== "playing") {
           playSound("win")
           hapticFeedback("heavy")
         }
+      } else {
+        console.log("Move failed:", moveResult)
       }
-
-      setTimeout(() => setIsProcessingMove(false), 100)
     }
 
+    // Сбрасываем выбор
     dispatch({ type: "SELECT_PIECE", piece: null })
     dispatch({ type: "SET_VALID_MOVES", moves: [] })
   }
 
   const handleBoardTouchStart = (e: React.TouchEvent) => {
-    const touch = e.touches[0]
-    const rect = e.currentTarget.getBoundingClientRect()
-    const boardSize = Math.min(rect.width, rect.height)
-    const squareSize = boardSize / 8
-
-    // Определяем клетку по координатам касания
-    const relativeX = touch.clientX - rect.left
-    const relativeY = touch.clientY - rect.top
-    const col = Math.floor(relativeX / squareSize)
-    const row = Math.floor(relativeY / squareSize)
-
-    if (row >= 0 && row < 8 && col >= 0 && col < 8) {
-      const piece = state.board[row][col]
-
-      // Если касание на шашке текущего игрока, начинаем отслеживание свайпа
-      if (piece && piece.color === state.currentPlayer) {
-        setSwipeState({
-          startPos: { x: touch.clientX, y: touch.clientY, row, col },
-          isDragging: true,
-        })
-
-        // Автоматически выбираем шашку
-        if (!state.selectedPiece || state.selectedPiece.id !== piece.id) {
-          dispatch({ type: "SELECT_PIECE", piece })
-          const validMoves = GameLogic.getValidMoves(state.board, piece)
-          dispatch({ type: "SET_VALID_MOVES", moves: validMoves })
-          playSound("select")
-          hapticFeedback("light")
-        }
-      }
-    }
+    // Не блокируем стандартное поведение в Telegram
   }
 
   const handleBoardTouchMove = (e: React.TouchEvent) => {
-    if (!swipeState.isDragging || !swipeState.startPos) return
-
-    e.preventDefault() // Предотвращаем скролл страницы
+    // Минимальная обработка для предотвращения конфликтов
   }
 
   const handleBoardTouchEnd = (e: React.TouchEvent) => {
-    if (!swipeState.isDragging || !swipeState.startPos || !state.selectedPiece) {
-      setSwipeState({ startPos: null, isDragging: false })
-      return
-    }
-
-    const touch = e.changedTouches[0]
-    const deltaX = touch.clientX - swipeState.startPos.x
-    const deltaY = touch.clientY - swipeState.startPos.y
-    const minSwipeDistance = 40
-
-    // Проверяем, достаточно ли большое расстояние для свайпа
-    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY)
-
-    if (distance < minSwipeDistance) {
-      setSwipeState({ startPos: null, isDragging: false })
-      return
-    }
-
-    // Определяем направление свайпа (включая диагональные)
-    const angle = Math.atan2(deltaY, deltaX) * (180 / Math.PI)
-    let targetRow = swipeState.startPos.row
-    let targetCol = swipeState.startPos.col
-
-    // Определяем целевую клетку на основе угла свайпа
-    if (angle >= -22.5 && angle < 22.5) {
-      // Вправо
-      targetCol += 1
-    } else if (angle >= 22.5 && angle < 67.5) {
-      // Вправо-вниз (диагональ)
-      targetCol += 1
-      targetRow += 1
-    } else if (angle >= 67.5 && angle < 112.5) {
-      // Вниз
-      targetRow += 1
-    } else if (angle >= 112.5 && angle < 157.5) {
-      // Влево-вниз (диагональ)
-      targetCol -= 1
-      targetRow += 1
-    } else if (angle >= 157.5 || angle < -157.5) {
-      // Влево
-      targetCol -= 1
-    } else if (angle >= -157.5 && angle < -112.5) {
-      // Влево-вверх (диагональ)
-      targetCol -= 1
-      targetRow -= 1
-    } else if (angle >= -112.5 && angle < -67.5) {
-      // Вверх
-      targetRow -= 1
-    } else if (angle >= -67.5 && angle < -22.5) {
-      // Вправо-вверх (диагональ)
-      targetCol += 1
-      targetRow -= 1
-    }
-
-    // Проверяем границы доски
-    if (targetRow >= 0 && targetRow < 8 && targetCol >= 0 && targetCol < 8) {
-      // Проверяем, является ли целевая клетка валидным ходом
-      const isValidMove = state.validMoves.some((move) => move.row === targetRow && move.col === targetCol)
-
-      if (isValidMove) {
-        handleSquareClick(targetRow, targetCol)
-        hapticFeedback("medium")
-      } else {
-        // Если ход невалиден, попробуем найти ближайший валидный ход в том же направлении
-        const validMove = state.validMoves.find((move) => {
-          const moveAngle =
-            Math.atan2(move.row - swipeState.startPos!.row, move.col - swipeState.startPos!.col) * (180 / Math.PI)
-          return Math.abs(moveAngle - angle) < 45 // В пределах 45 градусов от направления свайпа
-        })
-
-        if (validMove) {
-          handleSquareClick(validMove.row, validMove.col)
-          hapticFeedback("medium")
-        } else {
-          hapticFeedback("error")
-        }
-      }
-    }
-
-    setSwipeState({ startPos: null, isDragging: false })
+    // Упрощенная обработка touch событий
   }
 
   const handleSwipe = (fromRow: number, fromCol: number, direction: "up" | "down" | "left" | "right") => {
