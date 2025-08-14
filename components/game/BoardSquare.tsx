@@ -13,6 +13,10 @@ interface BoardSquareProps {
   isValidMove: boolean
   onClick: () => void
   onSwipe?: (direction: "up" | "down" | "left" | "right") => void
+  onDragStart?: (row: number, col: number) => void
+  onDragOver?: (row: number, col: number) => void
+  onDrop?: (row: number, col: number) => void
+  isDragTarget?: boolean
   animatingPiece?: {
     from: { row: number; col: number }
     to: { row: number; col: number }
@@ -28,12 +32,17 @@ export function BoardSquare({
   isValidMove,
   onClick,
   onSwipe,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  isDragTarget,
   animatingPiece,
 }: BoardSquareProps) {
   const [isPressed, setIsPressed] = useState(false)
   const [justCaptured, setJustCaptured] = useState(false)
   const [justMoved, setJustMoved] = useState(false)
-  const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null)
+  const [touchStart, setTouchStart] = useState<{ x: number; y: number; time: number } | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
   const { theme } = useTheme()
   const isDarkSquare = (row + col) % 2 === 1
   const isDarkTheme = theme === "dark"
@@ -53,11 +62,42 @@ export function BoardSquare({
   }, [piece, justMoved])
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    if (!piece) return
+
     setIsPressed(true)
     setTouchStart({
       x: e.touches[0].clientX,
       y: e.touches[0].clientY,
+      time: Date.now(),
     })
+
+    if (onDragStart) {
+      onDragStart(row, col)
+    }
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!touchStart || !piece) return
+
+    const currentTouch = e.touches[0]
+    const deltaX = currentTouch.clientX - touchStart.x
+    const deltaY = currentTouch.clientY - touchStart.y
+    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY)
+
+    if (distance > 15 && !isDragging) {
+      setIsDragging(true)
+      e.preventDefault() // Предотвращаем скролл только при drag
+    }
+
+    if (isDragging && onDragOver) {
+      const elementBelow = document.elementFromPoint(currentTouch.clientX, currentTouch.clientY)
+      const squareElement = elementBelow?.closest("[data-square]")
+      if (squareElement) {
+        const targetRow = Number.parseInt(squareElement.getAttribute("data-row") || "0")
+        const targetCol = Number.parseInt(squareElement.getAttribute("data-col") || "0")
+        onDragOver(targetRow, targetCol)
+      }
+    }
   }
 
   const handleTouchEnd = (e: React.TouchEvent) => {
@@ -75,17 +115,30 @@ export function BoardSquare({
 
     const distanceX = touchStart.x - touchEnd.x
     const distanceY = touchStart.y - touchEnd.y
-    const minSwipeDistance = 30 // Увеличил для более четкого определения свайпа
-
     const totalDistance = Math.sqrt(distanceX * distanceX + distanceY * distanceY)
+    const timeDiff = Date.now() - touchStart.time
 
-    if (totalDistance < minSwipeDistance) {
-      onClick()
+    if (isDragging && onDrop) {
+      const elementBelow = document.elementFromPoint(touchEnd.x, touchEnd.y)
+      const squareElement = elementBelow?.closest("[data-square]")
+      if (squareElement) {
+        const targetRow = Number.parseInt(squareElement.getAttribute("data-row") || "0")
+        const targetCol = Number.parseInt(squareElement.getAttribute("data-col") || "0")
+        onDrop(targetRow, targetCol)
+      }
+      setIsDragging(false)
       setTouchStart(null)
       return
     }
 
-    if (onSwipe) {
+    if (totalDistance < 15 && timeDiff < 300) {
+      onClick()
+      setIsDragging(false)
+      setTouchStart(null)
+      return
+    }
+
+    if (totalDistance >= 30 && onSwipe && !isDragging) {
       const angle = Math.atan2(-distanceY, -distanceX) * (180 / Math.PI)
       let direction: "up" | "down" | "left" | "right"
 
@@ -102,20 +155,8 @@ export function BoardSquare({
       onSwipe(direction)
     }
 
+    setIsDragging(false)
     setTouchStart(null)
-  }
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    // Только предотвращаем если это явный свайп
-    if (touchStart) {
-      const currentTouch = e.touches[0]
-      const distance = Math.sqrt(
-        Math.pow(currentTouch.clientX - touchStart.x, 2) + Math.pow(currentTouch.clientY - touchStart.y, 2),
-      )
-      if (distance > 20) {
-        e.preventDefault() // Предотвращаем скролл только при свайпе
-      }
-    }
   }
 
   const isAnimatingTo = animatingPiece?.to.row === row && animatingPiece?.to.col === col
@@ -147,8 +188,10 @@ export function BoardSquare({
         }
         ${isSelected ? "ring-4 ring-cyan-400/60 ring-inset shadow-2xl shadow-cyan-400/30 scale-105" : ""}
         ${isValidMove ? "ring-4 ring-emerald-400/60 ring-inset shadow-2xl shadow-emerald-400/30" : ""}
+        ${isDragTarget ? "ring-4 ring-yellow-400/60 ring-inset shadow-2xl shadow-yellow-400/30 scale-105" : ""}
         ${isPressed ? "scale-95 shadow-inner" : "hover:scale-102"}
         ${justCaptured ? "animate-pulse" : ""}
+        ${isDragging ? "opacity-50 scale-110" : ""}
         perspective-1000 transform-style-preserve-3d
       `}
       style={{
@@ -161,10 +204,13 @@ export function BoardSquare({
             ? "inset 0 4px 12px rgba(0,0,0,0.1), 0 8px 32px rgba(0,0,0,0.1)"
             : "inset 0 4px 12px rgba(255,255,255,0.3), 0 8px 32px rgba(99,102,241,0.1)",
       }}
+      data-square="true"
+      data-row={row}
+      data-col={col}
       onClick={onClick}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
-      onTouchMove={handleTouchMove} // Добавил обработчик touchMove
+      onTouchMove={handleTouchMove}
       onMouseDown={() => setIsPressed(true)}
       onMouseUp={() => setIsPressed(false)}
       onMouseLeave={() => setIsPressed(false)}
@@ -310,6 +356,13 @@ export function BoardSquare({
             />
           ))}
         </div>
+      )}
+
+      {isDragTarget && (
+        <div
+          className="absolute inset-0 bg-gradient-radial from-yellow-400/30 via-yellow-300/20 to-transparent backdrop-blur-sm animate-pulse rounded-lg pointer-events-none"
+          style={{ transform: "translateZ(15px)" }}
+        />
       )}
     </div>
   )

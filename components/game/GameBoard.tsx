@@ -25,14 +25,16 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
   const { hapticFeedback } = useTelegram()
   const { theme } = useTheme()
   const [isAIThinking, setIsAIThinking] = useState(false)
-  const [swipeState, setSwipeState] = useState<{
-    startPos: { x: number; y: number; row: number; col: number } | null
-    isDragging: boolean
-  }>({
-    startPos: null,
-    isDragging: false,
-  })
   const [isProcessingMove, setIsProcessingMove] = useState(false)
+  const [dragState, setDragState] = useState<{
+    isDragging: boolean
+    draggedPiece: { row: number; col: number } | null
+    dragTarget: { row: number; col: number } | null
+  }>({
+    isDragging: false,
+    draggedPiece: null,
+    dragTarget: null,
+  })
 
   useEffect(() => {
     if (mode === "bot" && state.currentPlayer === "black" && state.gameStatus === "playing" && !isAIThinking) {
@@ -72,6 +74,77 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
     hapticFeedback,
     isAIThinking,
   ])
+
+  const handleDragStart = (row: number, col: number) => {
+    const piece = state.board[row][col]
+    if (!piece || piece.color !== state.currentPlayer) return
+
+    // Автоматически выбираем шашку при начале drag
+    if (!state.selectedPiece || state.selectedPiece.position.row !== row || state.selectedPiece.position.col !== col) {
+      dispatch({ type: "SELECT_PIECE", piece })
+      const validMoves = GameLogic.getValidMoves(state.board, piece)
+      dispatch({ type: "SET_VALID_MOVES", moves: validMoves })
+      playSound("select")
+    }
+
+    setDragState({
+      isDragging: true,
+      draggedPiece: { row, col },
+      dragTarget: null,
+    })
+
+    hapticFeedback("light")
+  }
+
+  const handleDragOver = (row: number, col: number) => {
+    if (!dragState.isDragging) return
+
+    const isValidMove = state.validMoves.some((move) => move.row === row && move.col === col)
+
+    setDragState((prev) => ({
+      ...prev,
+      dragTarget: isValidMove ? { row, col } : null,
+    }))
+  }
+
+  const handleDrop = (row: number, col: number) => {
+    if (!dragState.isDragging || !dragState.draggedPiece) {
+      setDragState({ isDragging: false, draggedPiece: null, dragTarget: null })
+      return
+    }
+
+    const isValidMove = state.validMoves.some((move) => move.row === row && move.col === col)
+
+    if (isValidMove && state.selectedPiece) {
+      const position = { row, col }
+      const moveResult = GameLogic.makeMove(state.board, state.selectedPiece.position, position)
+
+      if (moveResult.success && moveResult.newState) {
+        dispatch({ type: "SET_GAME_STATE", state: moveResult.newState })
+        playSound(moveResult.capturedPieces.length > 0 ? "capture" : "move")
+        hapticFeedback(moveResult.capturedPieces.length > 0 ? "medium" : "light")
+
+        if (
+          moveResult.newState.board[position.row][position.col]?.type === "king" &&
+          state.selectedPiece.type === "regular"
+        ) {
+          playSound("promote")
+          hapticFeedback("heavy")
+        }
+
+        if (moveResult.newState.gameStatus !== "playing") {
+          playSound("win")
+          hapticFeedback("heavy")
+        }
+      }
+
+      // Сбрасываем выбор после успешного хода
+      dispatch({ type: "SELECT_PIECE", piece: null })
+      dispatch({ type: "SET_VALID_MOVES", moves: [] })
+    }
+
+    setDragState({ isDragging: false, draggedPiece: null, dragTarget: null })
+  }
 
   const handleSquareClick = (row: number, col: number) => {
     if (isAIThinking || (mode === "bot" && state.currentPlayer === "black")) {
@@ -208,6 +281,10 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
     return state.selectedPiece?.position.row === row && state.selectedPiece?.position.col === col
   }
 
+  const isDragTarget = (row: number, col: number) => {
+    return dragState.dragTarget?.row === row && dragState.dragTarget?.col === col
+  }
+
   return (
     <div
       className={`min-h-screen flex flex-col relative overflow-hidden ${
@@ -332,8 +409,12 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
                       piece={piece}
                       isSelected={isSelectedSquare(rowIndex, colIndex)}
                       isValidMove={isValidMoveSquare(rowIndex, colIndex)}
+                      isDragTarget={isDragTarget(rowIndex, colIndex)}
                       onClick={() => handleSquareClick(rowIndex, colIndex)}
                       onSwipe={(direction) => handleSwipe(rowIndex, colIndex, direction)}
+                      onDragStart={handleDragStart}
+                      onDragOver={handleDragOver}
+                      onDrop={handleDrop}
                     />
                   )),
                 )}
