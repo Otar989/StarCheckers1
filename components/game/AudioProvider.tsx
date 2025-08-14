@@ -72,8 +72,11 @@ export function AudioProvider({ children }: { children: ReactNode }) {
 
   const playSound = useCallback(
     (soundType: "move" | "capture" | "win" | "select" | "promote") => {
+      // Automatically initialize audio on first call
       if (!isAudioInitialized) {
         initializeAudio()
+        // Retry playing after initialization
+        setTimeout(() => playSound(soundType), 100)
         return
       }
 

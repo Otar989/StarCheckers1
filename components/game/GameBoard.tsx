@@ -21,7 +21,7 @@ interface GameBoardProps {
 
 export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
   const { state, dispatch } = useGame()
-  const { playSound } = useAudio()
+  const { playSound, initializeAudio } = useAudio()
   const { hapticFeedback } = useTelegram()
   const { theme } = useTheme()
   const [isAIThinking, setIsAIThinking] = useState(false)
@@ -75,6 +75,8 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
 
   const handleSquareClick = (row: number, col: number) => {
     if (isAIThinking || isProcessingMove || (mode === "bot" && state.currentPlayer === "black")) return
+
+    initializeAudio()
 
     const position: Position = { row, col }
     const piece = state.board[row][col]
