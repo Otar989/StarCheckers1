@@ -24,36 +24,35 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
   const { hapticFeedback } = useTelegram()
   const { theme } = useTheme()
   const [isAIThinking, setIsAIThinking] = useState(false)
+  const [isProcessingMove, setIsProcessingMove] = useState(false)
   const [dragOver, setDragOver] = useState<{ row: number; col: number } | null>(null)
 
   useEffect(() => {
     if (mode === "bot" && state.currentPlayer === "black" && state.gameStatus === "playing" && !isAIThinking) {
+      setIsAIThinking(true)
+
+      const thinkingTime = difficulty === "easy" ? 500 : difficulty === "medium" ? 1000 : 1500
+
       setTimeout(() => {
-        setIsAIThinking(true)
+        const aiMove = AIEngine.getBestMove(state.board, difficulty)
 
-        const thinkingTime = difficulty === "easy" ? 200 : difficulty === "medium" ? 400 : 600
+        if (aiMove) {
+          const moveResult = GameLogic.makeMove(state.board, aiMove.from, aiMove.to)
 
-        setTimeout(() => {
-          const aiMove = AIEngine.getBestMove(state.board, difficulty)
+          if (moveResult.success && moveResult.newState) {
+            dispatch({ type: "SET_GAME_STATE", state: moveResult.newState })
+            playSound(moveResult.capturedPieces.length > 0 ? "capture" : "move")
+            hapticFeedback(moveResult.capturedPieces.length > 0 ? "medium" : "light")
 
-          if (aiMove) {
-            const moveResult = GameLogic.makeMove(state.board, aiMove.from, aiMove.to)
-
-            if (moveResult.success && moveResult.newState) {
-              dispatch({ type: "SET_GAME_STATE", state: moveResult.newState })
-              playSound(moveResult.capturedPieces.length > 0 ? "capture" : "move")
-              hapticFeedback(moveResult.capturedPieces.length > 0 ? "medium" : "light")
-
-              if (moveResult.newState.gameStatus !== "playing") {
-                playSound("win")
-                hapticFeedback("heavy")
-              }
+            if (moveResult.newState.gameStatus !== "playing") {
+              playSound("win")
+              hapticFeedback("heavy")
             }
           }
+        }
 
-          setIsAIThinking(false)
-        }, thinkingTime)
-      }, 400) // Задержка 400ms перед началом думания ИИ
+        setIsAIThinking(false)
+      }, thinkingTime)
     }
   }, [
     state.currentPlayer,
@@ -68,7 +67,7 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
   ])
 
   const handleSquareClick = (row: number, col: number) => {
-    if (isAIThinking || (mode === "bot" && state.currentPlayer === "black")) {
+    if (isAIThinking || isProcessingMove || (mode === "bot" && state.currentPlayer === "black")) {
       return
     }
 
@@ -106,12 +105,11 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
     const isValidMove = state.validMoves.some((move) => move.row === row && move.col === col)
 
     if (isValidMove && state.selectedPiece) {
+      setIsProcessingMove(true)
+
       const moveResult = GameLogic.makeMove(state.board, state.selectedPiece.position, position)
 
       if (moveResult.success && moveResult.newState) {
-        dispatch({ type: "SELECT_PIECE", piece: null })
-        dispatch({ type: "SET_VALID_MOVES", moves: [] })
-
         dispatch({ type: "SET_GAME_STATE", state: moveResult.newState })
         playSound(moveResult.capturedPieces.length > 0 ? "capture" : "move")
         hapticFeedback(moveResult.capturedPieces.length > 0 ? "medium" : "light")
@@ -129,10 +127,12 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
           hapticFeedback("heavy")
         }
       }
-    } else {
-      dispatch({ type: "SELECT_PIECE", piece: null })
-      dispatch({ type: "SET_VALID_MOVES", moves: [] })
+
+      setTimeout(() => setIsProcessingMove(false), 100)
     }
+
+    dispatch({ type: "SELECT_PIECE", piece: null })
+    dispatch({ type: "SET_VALID_MOVES", moves: [] })
   }
 
   const handleDragStart = (row: number, col: number) => {
@@ -155,6 +155,7 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
   const resetGame = () => {
     dispatch({ type: "RESET_GAME" })
     setIsAIThinking(false)
+    setIsProcessingMove(false)
     hapticFeedback("medium")
   }
 
@@ -170,120 +171,67 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
     <div
       className={`min-h-screen flex flex-col relative overflow-hidden ${
         theme === "dark"
-          ? "bg-gradient-to-br from-slate-950 via-gray-900 to-black"
-          : theme === "system"
-            ? "bg-gradient-to-br from-slate-900 via-purple-900 to-indigo-900"
-            : "bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50"
+          ? "bg-gradient-to-br from-gray-900 via-slate-900 to-black"
+          : "bg-gradient-to-br from-blue-50/30 via-purple-50/20 to-pink-50/30"
       }`}
       style={{
-        paddingTop: "max(env(safe-area-inset-top), 60px)",
-        paddingBottom: "max(env(safe-area-inset-bottom), 16px)",
-        paddingLeft: "max(env(safe-area-inset-left), 12px)",
-        paddingRight: "max(env(safe-area-inset-right), 12px)",
+        paddingTop: "max(env(safe-area-inset-top), 120px)",
+        paddingBottom: "max(env(safe-area-inset-bottom), 30px)",
+        paddingLeft: "max(env(safe-area-inset-left), 16px)",
+        paddingRight: "max(env(safe-area-inset-right), 16px)",
         minHeight: "100vh",
         minHeight: "100dvh",
       }}
     >
-      <div className="absolute inset-0 overflow-hidden">
-        <div
-          className={`absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-3xl opacity-30 animate-pulse ${
-            theme === "dark"
-              ? "bg-gradient-to-br from-blue-600/20 to-purple-600/20"
-              : theme === "system"
-                ? "bg-gradient-to-br from-purple-600/20 to-indigo-600/20"
-                : "bg-gradient-to-br from-blue-300/30 to-purple-300/30"
-          }`}
-        />
-        <div
-          className={`absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full blur-3xl opacity-20 animate-pulse delay-1000 ${
-            theme === "dark"
-              ? "bg-gradient-to-br from-purple-600/20 to-pink-600/20"
-              : theme === "system"
-                ? "bg-gradient-to-br from-indigo-600/20 to-pink-600/20"
-                : "bg-gradient-to-br from-purple-300/30 to-pink-300/30"
-          }`}
-        />
+      <div
+        className={`absolute inset-0 ${
+          theme === "dark"
+            ? "bg-gradient-to-br from-blue-950/40 via-purple-950/30 to-pink-950/40"
+            : "bg-gradient-to-br from-blue-50/30 via-purple-50/20 to-pink-50/30"
+        }`}
+      />
 
-        <div
-          className={`absolute inset-0 opacity-20 ${theme === "dark" ? "opacity-30" : "opacity-20"}`}
-          style={{
-            background:
-              theme === "dark"
-                ? "linear-gradient(120deg, transparent 20%, rgba(59, 130, 246, 0.1) 40%, rgba(147, 51, 234, 0.1) 60%, transparent 80%)"
-                : theme === "system"
-                  ? "linear-gradient(120deg, transparent 20%, rgba(147, 51, 234, 0.2) 40%, rgba(59, 130, 246, 0.2) 60%, transparent 80%)"
-                  : "linear-gradient(120deg, transparent 20%, rgba(59, 130, 246, 0.2) 40%, rgba(147, 51, 234, 0.2) 60%, transparent 80%)",
-            animation: "moveWave 10s ease-in-out infinite alternate",
-          }}
-        />
+      <div
+        className={`absolute top-10 left-10 w-24 h-24 rounded-full blur-2xl animate-pulse backdrop-blur-3xl ${
+          theme === "dark"
+            ? "bg-gradient-to-br from-blue-600/40 to-purple-600/40"
+            : "bg-gradient-to-br from-blue-400/20 to-purple-400/20"
+        }`}
+      />
+      <div
+        className={`absolute bottom-10 right-10 w-32 h-32 rounded-full blur-2xl animate-pulse delay-1000 backdrop-blur-3xl ${
+          theme === "dark"
+            ? "bg-gradient-to-br from-purple-600/40 to-pink-600/40"
+            : "bg-gradient-to-br from-purple-400/20 to-pink-400/20"
+        }`}
+      />
 
-        {Array.from({ length: 8 }).map((_, i) => (
-          <div
-            key={i}
-            className={`absolute w-1.5 h-1.5 rounded-full blur-sm ${theme === "dark" ? "bg-white/10" : theme === "system" ? "bg-purple-100/10" : "bg-black/10"}`}
-            style={{
-              left: `${20 + Math.random() * 60}%`,
-              top: `${20 + Math.random() * 60}%`,
-              animation: `gentleFloat ${4 + Math.random() * 3}s ease-in-out infinite`,
-              animationDelay: `${Math.random() * 3}s`,
-            }}
-          />
-        ))}
-
-        <div
-          className={`absolute top-0 left-1/2 w-px h-full transform -translate-x-1/2 opacity-10 ${
-            theme === "dark"
-              ? "bg-gradient-to-b from-blue-400/20 via-transparent to-purple-400/20"
-              : theme === "system"
-                ? "bg-gradient-to-b from-indigo-400/20 via-transparent to-purple-400/20"
-                : "bg-gradient-to-b from-blue-600/20 via-transparent to-purple-600/20"
-          }`}
-          style={{
-            animation: "shimmer 6s ease-in-out infinite alternate",
-          }}
-        />
-      </div>
-
-      <div className="flex items-center justify-between mb-2 md:mb-4 relative z-10">
+      <div className="flex items-center justify-between mb-1 sm:mb-2 relative px-1 sm:px-2">
         <button
           onClick={onBackToMenu}
-          className={`flex items-center gap-2 px-3 py-2 md:px-4 md:py-2.5 rounded-2xl backdrop-blur-2xl border transition-all duration-300 hover:scale-105 shadow-xl ${
+          className={`flex items-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl backdrop-blur-xl border transition-all duration-300 hover:scale-105 shadow-lg text-xs sm:text-sm ${
             theme === "dark"
-              ? "bg-white/5 border-white/10 hover:bg-white/10 text-white/90 shadow-black/20"
-              : theme === "system"
-                ? "bg-white/10 border-purple-300/20 hover:bg-white/15 text-white/90 shadow-black/20"
-                : "bg-white/20 border-white/30 hover:bg-white/30 text-black/80 shadow-black/10"
+              ? "bg-white/10 border-white/20 hover:bg-white/20 text-white/90"
+              : "bg-black/20 border-black/30 hover:bg-black/30 text-black/80"
           }`}
         >
-          <ArrowLeft className="w-4 h-4" />
-          <span className="font-medium text-sm">Меню</span>
+          <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4" />
+          <span className="hidden xs:inline font-medium">Меню</span>
         </button>
 
         <div
-          className={`text-center backdrop-blur-2xl rounded-2xl border px-3 py-2 md:px-4 md:py-2.5 shadow-xl ${
-            theme === "dark"
-              ? "bg-black/20 border-white/10"
-              : theme === "system"
-                ? "bg-purple-900/30 border-purple-300/20"
-                : "bg-white/30 border-white/40"
+          className={`text-center backdrop-blur-xl rounded-xl border px-2 sm:px-3 py-1 sm:py-1.5 shadow-lg ${
+            theme === "dark" ? "bg-black/30 border-white/20" : "bg-white/20 border-white/30"
           }`}
         >
           <h2
-            className={`font-bold text-sm bg-gradient-to-r bg-clip-text text-transparent ${
-              theme === "dark"
-                ? "from-blue-400 to-purple-400"
-                : theme === "system"
-                  ? "from-purple-300 to-indigo-300"
-                  : "from-blue-600 to-purple-600"
+            className={`font-bold text-xs sm:text-sm bg-gradient-to-r bg-clip-text text-transparent ${
+              theme === "dark" ? "from-blue-400 to-purple-400" : "from-blue-600 to-purple-600"
             }`}
           >
             StarCheckers
           </h2>
-          <p
-            className={`text-xs ${
-              theme === "dark" ? "text-white/60" : theme === "system" ? "text-purple-200/70" : "text-black/60"
-            }`}
-          >
+          <p className={`text-xs ${theme === "dark" ? "text-white/70" : "text-black/70"}`}>
             {mode === "bot" &&
               `ИИ (${difficulty === "easy" ? "Легко" : difficulty === "medium" ? "Средне" : "Сложно"})`}
             {mode === "local" && "Локальная игра"}
@@ -293,73 +241,44 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
 
         <button
           onClick={resetGame}
-          className={`flex items-center justify-center p-2 md:p-2.5 rounded-2xl backdrop-blur-2xl border transition-all duration-300 hover:scale-105 shadow-xl ${
+          className={`flex items-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl backdrop-blur-xl border transition-all duration-300 hover:scale-105 shadow-lg ${
             theme === "dark"
-              ? "bg-white/5 border-white/10 hover:bg-white/10 text-white/90"
-              : theme === "system"
-                ? "bg-white/10 border-purple-300/20 hover:bg-white/15 text-white/90"
-                : "bg-white/20 border-white/30 hover:bg-white/30 text-black/80"
+              ? "bg-white/10 border-white/20 hover:bg-white/20 text-white/90"
+              : "bg-black/20 border-black/30 hover:bg-black/30 text-black/80"
           }`}
         >
-          <RotateCcw className="w-4 h-4" />
+          <RotateCcw className="w-3 h-3 sm:w-4 sm:h-4" />
         </button>
       </div>
 
-      <div className="flex-1 flex items-center justify-center px-1 md:px-2">
-        <div
-          className="relative w-full 
-          max-w-[min(90vw,80vh,400px)] 
-          sm:max-w-[min(85vw,75vh,450px)]
-          md:max-w-[min(80vw,70vh,550px)]
-          lg:max-w-[min(75vw,65vh,600px)]
-          aspect-square"
-        >
+      <div className="flex-1 flex items-center justify-center px-1 sm:px-2">
+        <div className="relative w-full max-w-[min(80vw,70vh,400px)] aspect-square">
           <div
-            className={`absolute inset-0 rounded-3xl blur-3xl transform translate-y-8 scale-110 ${
+            className={`absolute inset-0 rounded-2xl blur-2xl transform translate-y-4 scale-105 ${
               theme === "dark"
-                ? "bg-gradient-to-br from-black/80 to-gray-900/90"
-                : theme === "system"
-                  ? "bg-gradient-to-br from-purple-900/80 to-indigo-900/90"
-                  : "bg-gradient-to-br from-black/20 to-gray-600/30"
+                ? "bg-gradient-to-br from-black/60 to-gray-900/80"
+                : "bg-gradient-to-br from-black/30 to-black/50"
             }`}
           />
           <div
-            className={`absolute inset-0 rounded-2xl blur-xl transform translate-y-4 scale-105 ${
-              theme === "dark" ? "bg-black/60" : theme === "system" ? "bg-purple-900/60" : "bg-black/15"
+            className={`absolute inset-0 rounded-xl blur-lg transform translate-y-2 scale-102 ${
+              theme === "dark" ? "bg-black/40" : "bg-black/20"
             }`}
           />
 
           <div
-            className={`relative backdrop-blur-3xl rounded-3xl border-2 p-2 md:p-3 shadow-2xl transform-gpu ${
-              theme === "dark"
-                ? "bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-900/50 border-white/10"
-                : theme === "system"
-                  ? "bg-gradient-to-br from-purple-800/40 via-indigo-800/30 to-slate-900/50 border-purple-300/20"
-                  : "bg-gradient-to-br from-white/40 via-blue-50/30 to-indigo-100/40 border-white/40"
+            className={`relative backdrop-blur-2xl rounded-2xl border p-1 sm:p-2 shadow-2xl ${
+              theme === "dark" ? "bg-black/40 border-white/20" : "bg-white/20 border-white/30"
             }`}
-            style={{
-              transform: "perspective(1000px) rotateX(5deg)",
-              transformStyle: "preserve-3d",
-            }}
           >
             <div
-              className={`backdrop-blur-2xl rounded-2xl border p-1.5 md:p-2 ${
+              className={`backdrop-blur-xl rounded-xl border p-0.5 sm:p-1 ${
                 theme === "dark"
-                  ? "bg-gradient-to-br from-amber-900/30 via-orange-900/20 to-red-900/30 border border-white/5"
-                  : theme === "system"
-                    ? "bg-gradient-to-br from-purple-800/30 via-indigo-800/20 to-slate-800/30 border border-purple-300/10"
-                    : "bg-gradient-to-br from-amber-100/40 via-orange-100/30 to-red-100/40 border border-white/30"
+                  ? "bg-gradient-to-br from-amber-900/40 to-orange-900/40 border-white/10"
+                  : "bg-gradient-to-br from-amber-100/30 to-orange-100/30 border-white/20"
               }`}
-              style={{
-                transform: "translateZ(10px)",
-              }}
             >
-              <div
-                className="grid grid-cols-8 gap-0.5 w-full h-full rounded-xl overflow-hidden shadow-inner"
-                style={{
-                  transform: "translateZ(5px)",
-                }}
-              >
+              <div className="grid grid-cols-8 gap-0 w-full h-full rounded-lg overflow-hidden shadow-inner">
                 {state.board.map((row, rowIndex) =>
                   row.map((piece, colIndex) => (
                     <BoardSquare
@@ -383,31 +302,23 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
         </div>
       </div>
 
-      <div className="text-center space-y-2 md:space-y-3 px-1 md:px-2 pb-1 md:pb-2 relative z-10">
+      <div className="text-center space-y-1 px-1 sm:px-2 pb-1">
         <div
-          className={`inline-flex items-center gap-2 md:gap-3 backdrop-blur-2xl rounded-full px-3 py-2 md:px-4 md:py-3 border shadow-xl min-h-[40px] md:min-h-[48px] min-w-[140px] md:min-w-[160px] justify-center ${
-            theme === "dark"
-              ? "bg-black/30 border-white/10"
-              : theme === "system"
-                ? "bg-purple-900/30 border-purple-300/20"
-                : "bg-white/30 border-white/40"
+          className={`inline-flex items-center gap-2 backdrop-blur-xl rounded-full px-3 py-1.5 border shadow-lg ${
+            theme === "dark" ? "bg-black/30 border-white/20" : "bg-white/20 border-white/30"
           }`}
         >
           <div
-            className={`w-2.5 h-2.5 md:w-3 md:h-3 rounded-full flex-shrink-0 shadow-lg ${
+            className={`w-2.5 h-2.5 rounded-full ${
               state.currentPlayer === "white"
                 ? "bg-gradient-to-br from-gray-100 to-gray-300 border border-gray-400"
                 : "bg-gradient-to-br from-gray-700 to-gray-900 border border-gray-600"
             }`}
           />
-          <p
-            className={`text-xs md:text-sm font-semibold whitespace-nowrap ${
-              theme === "dark" ? "text-white/90" : theme === "system" ? "text-purple-100/90" : "text-black/90"
-            }`}
-          >
+          <p className={`text-xs font-semibold ${theme === "dark" ? "text-white/90" : "text-black/90"}`}>
             {isAIThinking ? (
-              <span className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 md:w-3 md:h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+              <span className="flex items-center gap-1">
+                <div className="w-2 h-2 border border-blue-400 border-t-transparent rounded-full animate-spin" />
                 Бот думает...
               </span>
             ) : (
@@ -418,15 +329,13 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
 
         {state.gameStatus !== "playing" && (
           <div
-            className={`backdrop-blur-2xl border rounded-full px-3 py-2 md:px-4 md:py-3 shadow-xl animate-pulse min-h-[40px] md:min-h-[48px] flex items-center justify-center ${
+            className={`backdrop-blur-xl border rounded-full px-3 py-1.5 shadow-lg animate-pulse ${
               theme === "dark"
-                ? "bg-gradient-to-r from-green-600/30 to-emerald-600/30 border-green-400/30 text-white"
-                : theme === "system"
-                  ? "bg-gradient-to-r from-green-500/30 to-emerald-500/30 border-green-300/30 text-white"
-                  : "bg-gradient-to-r from-green-400/40 to-emerald-400/40 border-green-400/50 text-black"
+                ? "bg-gradient-to-r from-green-600/40 to-emerald-600/40 border-green-400/40 text-white"
+                : "bg-gradient-to-r from-green-400/30 to-emerald-400/30 border-green-400/40 text-black"
             }`}
           >
-            <p className="font-bold text-xs md:text-sm whitespace-nowrap">
+            <p className="font-bold text-xs">
               {state.gameStatus === "white-wins" && "Белые победили!"}
               {state.gameStatus === "black-wins" && "Черные победили!"}
               {state.gameStatus === "draw" && "Ничья!"}
@@ -434,46 +343,27 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
           </div>
         )}
 
-        <div
-          className={`backdrop-blur-2xl rounded-2xl border p-2 md:p-3 max-w-xs md:max-w-sm mx-auto min-h-[50px] md:min-h-[60px] ${
-            theme === "dark"
-              ? "bg-black/20 border-white/10"
-              : theme === "system"
-                ? "bg-purple-900/20 border-purple-300/20"
-                : "bg-white/20 border-white/30"
-          }`}
-        >
-          <p
-            className={`text-xs mb-1 md:mb-2 ${
-              theme === "dark" ? "text-white/60" : theme === "system" ? "text-purple-200/50" : "text-black/40"
+        {state.capturedPieces.length > 0 && (
+          <div
+            className={`backdrop-blur-xl rounded-xl border p-1.5 max-w-xs mx-auto ${
+              theme === "dark" ? "bg-black/20 border-white/10" : "bg-white/5 border-white/10"
             }`}
           >
-            Взятые:
-          </p>
-          <div className="flex justify-center gap-1 flex-wrap min-h-[16px] md:min-h-[20px] items-center">
-            {state.capturedPieces.length > 0 ? (
-              state.capturedPieces.map((piece, index) => (
+            <p className={`text-xs mb-1 ${theme === "dark" ? "text-white/70" : "text-black/70"}`}>Взятые:</p>
+            <div className="flex justify-center gap-0.5 flex-wrap">
+              {state.capturedPieces.map((piece, index) => (
                 <div
                   key={`captured-${piece.id}-${index}`}
-                  className={`w-3.5 h-3.5 md:w-4 md:h-4 rounded-full border backdrop-blur-xl shadow-lg transition-all duration-200 ease-out animate-in fade-in zoom-in ${
+                  className={`w-3 h-3 rounded-full border backdrop-blur-xl ${
                     piece.color === "white"
-                      ? "bg-gradient-to-br from-gray-100/90 to-gray-300/90 border-gray-300"
-                      : "bg-gradient-to-br from-gray-700/90 to-gray-900/90 border-gray-600"
-                  } ${piece.type === "king" ? "ring-1 md:ring-2 ring-yellow-400/60" : ""}`}
-                  style={{ borderRadius: "50%" }}
+                      ? "bg-gradient-to-br from-gray-100/80 to-gray-300/80 border-gray-300"
+                      : "bg-gradient-to-br from-gray-700/80 to-gray-900/80 border-gray-600"
+                  } ${piece.type === "king" ? "ring-1 ring-yellow-400/50" : ""}`}
                 />
-              ))
-            ) : (
-              <p
-                className={`text-xs italic ${
-                  theme === "dark" ? "text-white/40" : theme === "system" ? "text-purple-200/50" : "text-black/40"
-                }`}
-              >
-                Пока нет взятых фигур
-              </p>
-            )}
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   )
