@@ -271,26 +271,9 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
           lg:max-w-[min(75vw,65vh,600px)]
           aspect-square"
         >
-          {/* Multiple shadow layers for depth */}
-          <div
-            className={`absolute inset-0 rounded-3xl blur-3xl transform translate-y-12 scale-115 ${
-              theme === "dark"
-                ? "bg-gradient-to-br from-black/90 to-gray-900/95"
-                : theme === "system"
-                  ? "bg-gradient-to-br from-purple-900/90 to-indigo-900/95"
-                  : "bg-gradient-to-br from-black/30 to-gray-600/40"
-            }`}
-          />
-          <div
-            className={`absolute inset-0 rounded-2xl blur-2xl transform translate-y-6 scale-110 ${
-              theme === "dark" ? "bg-black/70" : theme === "system" ? "bg-purple-900/70" : "bg-black/20"
-            }`}
-          />
-          <div
-            className={`absolute inset-0 rounded-xl blur-xl transform translate-y-3 scale-105 ${
-              theme === "dark" ? "bg-black/50" : theme === "system" ? "bg-purple-900/50" : "bg-black/15"
-            }`}
-          />
+          <div className="absolute inset-0 rounded-3xl blur-3xl transform translate-y-12 scale-115 bg-black/20" />
+          <div className="absolute inset-0 rounded-2xl blur-2xl transform translate-y-6 scale-110 bg-black/15" />
+          <div className="absolute inset-0 rounded-xl blur-xl transform translate-y-3 scale-105 bg-black/10" />
 
           <div
             className="liquid-glass-3d relative rounded-3xl p-2 md:p-3 transform-gpu"
@@ -300,21 +283,17 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
             }}
           >
             <div
-              className={`liquid-glass-3d rounded-2xl p-1.5 md:p-2 ${
-                theme === "dark"
-                  ? "bg-gradient-to-br from-amber-900/40 via-orange-900/30 to-red-900/40"
-                  : theme === "system"
-                    ? "bg-gradient-to-br from-purple-800/40 via-indigo-800/30 to-slate-800/40"
-                    : "bg-gradient-to-br from-amber-200/70 via-orange-200/60 to-red-200/70"
-              }`}
+              className="liquid-glass-3d rounded-2xl p-1.5 md:p-2 backdrop-blur-xl bg-white/5 border border-white/10"
               style={{
                 transform: "translateZ(15px)",
+                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1)",
               }}
             >
               <div
-                className="grid grid-cols-8 gap-0.5 w-full h-full rounded-xl overflow-hidden shadow-inner"
+                className="grid grid-cols-8 gap-0.5 w-full h-full rounded-xl overflow-hidden shadow-inner backdrop-blur-sm"
                 style={{
                   transform: "translateZ(10px)",
+                  boxShadow: "inset 0 2px 4px rgba(0, 0, 0, 0.1)",
                 }}
               >
                 {state.board.map((row, rowIndex) =>
