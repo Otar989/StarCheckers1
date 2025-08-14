@@ -1,5 +1,7 @@
 "use client"
 import { useState } from "react"
+import type React from "react"
+
 import { useTheme } from "@/hooks/use-theme"
 
 import type { Piece } from "./GameProvider"
@@ -42,7 +44,8 @@ export function BoardSquare({
   const isDarkSquare = (row + col) % 2 === 1
   const isDarkTheme = theme === "dark"
 
-  const handleClick = () => {
+  const handleTouch = (e: React.TouchEvent) => {
+    e.preventDefault()
     onClick()
   }
 
@@ -50,7 +53,7 @@ export function BoardSquare({
     <div
       className={`
         aspect-square flex items-center justify-center relative cursor-pointer
-        select-none overflow-hidden transition-all duration-300 transform-gpu
+        select-none overflow-hidden transition-all duration-200 ease-out transform-gpu
         ${
           isDarkSquare
             ? isDarkTheme
@@ -75,10 +78,8 @@ export function BoardSquare({
         ${isDragTarget ? "ring-4 ring-yellow-400/80 ring-inset shadow-2xl shadow-yellow-400/40 scale-105" : ""}
         ${isPressed ? "scale-95 shadow-inner" : "hover:scale-102 active:scale-95"}
       `}
-      onClick={handleClick}
-      onTouchEnd={(e) => {
-        e.currentTarget.click()
-      }}
+      onClick={onClick}
+      onTouchEnd={handleTouch}
       onMouseDown={() => setIsPressed(true)}
       onMouseUp={() => setIsPressed(false)}
       onMouseLeave={() => setIsPressed(false)}
@@ -95,7 +96,7 @@ export function BoardSquare({
       <div className="absolute inset-0 rounded-sm overflow-hidden">
         <div
           className={`
-            absolute inset-0 
+            absolute inset-0 transition-all duration-200 ease-out
             ${
               isDarkTheme
                 ? "bg-gradient-to-br from-white/8 via-transparent to-black/15"
@@ -106,7 +107,7 @@ export function BoardSquare({
         />
         <div
           className={`
-            absolute top-0 left-0 w-full h-1/2 
+            absolute top-0 left-0 w-full h-1/2 transition-all duration-200 ease-out
             ${
               isDarkTheme
                 ? "bg-gradient-to-b from-white/15 to-transparent"
@@ -123,6 +124,7 @@ export function BoardSquare({
           <div
             className={`
             w-5 h-5 rounded-full backdrop-blur-2xl border-2 shadow-2xl animate-bounce
+            transition-all duration-200 ease-out
             ${
               isDarkTheme
                 ? "bg-gradient-to-br from-emerald-400/90 to-teal-500/90 border-emerald-300/80 shadow-emerald-400/60"
@@ -144,12 +146,12 @@ export function BoardSquare({
           className={`relative w-4/5 h-4/5 group transform-gpu`}
           style={{
             transform: `translateZ(25px) ${isSelected ? "scale(1.15)" : "scale(1)"}`,
-            transition: "all 0.3s ease",
+            transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
           }}
         >
           <div
             className={`
-              w-full h-full rounded-full relative transition-all duration-300 transform-gpu
+              w-full h-full rounded-full relative transition-all duration-200 ease-out transform-gpu
               ${
                 piece.color === "white"
                   ? isDarkTheme
@@ -185,18 +187,21 @@ export function BoardSquare({
           >
             {/* Piece highlight */}
             <div
-              className="absolute inset-1 rounded-full bg-gradient-to-br from-white/70 via-white/30 to-transparent"
+              className="absolute inset-1 rounded-full bg-gradient-to-br from-white/70 via-white/30 to-transparent transition-all duration-200 ease-out"
               style={{ borderRadius: "50%" }}
             />
             <div
-              className="absolute top-1 left-1 w-1/3 h-1/3 rounded-full bg-white/80 blur-sm"
+              className="absolute top-1 left-1 w-1/3 h-1/3 rounded-full bg-white/80 blur-sm transition-all duration-200 ease-out"
               style={{ borderRadius: "50%" }}
             />
 
             {/* Piece inner pattern */}
-            <div className="absolute inset-2 rounded-full opacity-40" style={{ borderRadius: "50%" }}>
+            <div
+              className="absolute inset-2 rounded-full opacity-40 transition-all duration-200 ease-out"
+              style={{ borderRadius: "50%" }}
+            >
               <div
-                className={`w-full h-full rounded-full ${
+                className={`w-full h-full rounded-full transition-all duration-200 ease-out ${
                   piece.color === "white"
                     ? "bg-gradient-to-br from-blue-200/50 to-purple-200/50"
                     : "bg-gradient-to-br from-slate-300/50 to-slate-500/50"
@@ -208,15 +213,17 @@ export function BoardSquare({
             {/* King crown */}
             {piece.type === "king" && (
               <div
-                className="absolute inset-0 flex items-center justify-center transform-gpu"
+                className="absolute inset-0 flex items-center justify-center transform-gpu transition-all duration-200 ease-out"
                 style={{ transform: "translateZ(15px)" }}
               >
-                <div className={`w-6 h-6 drop-shadow-2xl ${isDarkTheme ? "text-yellow-300" : "text-yellow-500"}`}>
+                <div
+                  className={`w-6 h-6 drop-shadow-2xl transition-all duration-200 ease-out ${isDarkTheme ? "text-yellow-300" : "text-yellow-500"}`}
+                >
                   <div className="absolute inset-0 bg-gradient-radial from-yellow-400/80 to-yellow-600/80 rounded-full backdrop-blur-sm animate-pulse" />
                   <svg
                     viewBox="0 0 24 24"
                     fill="currentColor"
-                    className="w-full h-full relative z-10 filter drop-shadow-lg"
+                    className="w-full h-full relative z-10 filter drop-shadow-lg transition-all duration-200 ease-out"
                   >
                     <path d="M12 6L13.13 8.09L15.5 7.5L14.5 9.96L17 11L14.5 12.04L15.5 14.5L13.13 13.91L12 16L10.87 13.91L8.5 14.5L9.5 12.04L8.5 7.5L10.87 8.09L12 6Z" />
                   </svg>
@@ -230,7 +237,7 @@ export function BoardSquare({
       {/* Selection glow */}
       {isSelected && (
         <div
-          className="absolute inset-0 bg-gradient-radial from-cyan-400/40 via-cyan-300/25 to-transparent backdrop-blur-sm animate-pulse rounded-sm pointer-events-none"
+          className="absolute inset-0 bg-gradient-radial from-cyan-400/40 via-cyan-300/25 to-transparent backdrop-blur-sm animate-pulse rounded-sm pointer-events-none transition-all duration-200 ease-out"
           style={{ transform: "translateZ(10px)" }}
         />
       )}
@@ -238,7 +245,7 @@ export function BoardSquare({
       {/* Valid move glow */}
       {isValidMove && (
         <div
-          className="absolute inset-0 bg-gradient-radial from-emerald-400/40 via-emerald-300/25 to-transparent backdrop-blur-sm animate-pulse rounded-sm pointer-events-none"
+          className="absolute inset-0 bg-gradient-radial from-emerald-400/40 via-emerald-300/25 to-transparent backdrop-blur-sm animate-pulse rounded-sm pointer-events-none transition-all duration-200 ease-out"
           style={{ transform: "translateZ(10px)" }}
         />
       )}

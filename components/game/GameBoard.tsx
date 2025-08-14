@@ -360,28 +360,32 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
         )}
 
         {/* Captured pieces */}
-        {state.capturedPieces.length > 0 && (
-          <div
-            className={`backdrop-blur-2xl rounded-2xl border p-3 max-w-sm mx-auto min-h-[60px] ${
-              theme === "dark" ? "bg-black/20 border-white/10" : "bg-white/20 border-white/30"
-            }`}
-          >
-            <p className={`text-xs mb-2 ${theme === "dark" ? "text-white/60" : "text-black/60"}`}>Взятые:</p>
-            <div className="flex justify-center gap-1 flex-wrap">
-              {state.capturedPieces.map((piece, index) => (
+        <div
+          className={`backdrop-blur-2xl rounded-2xl border p-3 max-w-sm mx-auto min-h-[60px] ${
+            theme === "dark" ? "bg-black/20 border-white/10" : "bg-white/20 border-white/30"
+          }`}
+        >
+          <p className={`text-xs mb-2 ${theme === "dark" ? "text-white/60" : "text-black/60"}`}>Взятые:</p>
+          <div className="flex justify-center gap-1 flex-wrap min-h-[20px] items-center">
+            {state.capturedPieces.length > 0 ? (
+              state.capturedPieces.map((piece, index) => (
                 <div
                   key={`captured-${piece.id}-${index}`}
-                  className={`w-4 h-4 rounded-full border backdrop-blur-xl shadow-lg ${
+                  className={`w-4 h-4 rounded-full border backdrop-blur-xl shadow-lg transition-all duration-200 ease-out animate-in fade-in zoom-in ${
                     piece.color === "white"
                       ? "bg-gradient-to-br from-gray-100/90 to-gray-300/90 border-gray-300"
                       : "bg-gradient-to-br from-gray-700/90 to-gray-900/90 border-gray-600"
                   } ${piece.type === "king" ? "ring-2 ring-yellow-400/60" : ""}`}
                   style={{ borderRadius: "50%" }}
                 />
-              ))}
-            </div>
+              ))
+            ) : (
+              <p className={`text-xs italic ${theme === "dark" ? "text-white/40" : "text-black/40"}`}>
+                Пока нет взятых фигур
+              </p>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   )
