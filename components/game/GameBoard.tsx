@@ -167,67 +167,63 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
     <div
       className={`min-h-screen flex flex-col relative overflow-hidden ${
         theme === "dark"
-          ? "bg-gradient-to-br from-gray-900 via-slate-900 to-black"
-          : "bg-gradient-to-br from-blue-50/30 via-purple-50/20 to-pink-50/30"
+          ? "bg-gradient-to-br from-slate-950 via-gray-900 to-black"
+          : "bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50"
       }`}
       style={{
-        paddingTop: "max(env(safe-area-inset-top), 120px)",
-        paddingBottom: "max(env(safe-area-inset-bottom), 30px)",
-        paddingLeft: "max(env(safe-area-inset-left), 16px)",
-        paddingRight: "max(env(safe-area-inset-right), 16px)",
+        paddingTop: "max(env(safe-area-inset-top), 100px)",
+        paddingBottom: "max(env(safe-area-inset-bottom), 20px)",
+        paddingLeft: "max(env(safe-area-inset-left), 12px)",
+        paddingRight: "max(env(safe-area-inset-right), 12px)",
         minHeight: "100vh",
         minHeight: "100dvh",
       }}
     >
-      <div
-        className={`absolute inset-0 ${
-          theme === "dark"
-            ? "bg-gradient-to-br from-blue-950/40 via-purple-950/30 to-pink-950/40"
-            : "bg-gradient-to-br from-blue-50/30 via-purple-50/20 to-pink-50/30"
-        }`}
-      />
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div
+          className={`absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-3xl opacity-30 animate-pulse ${
+            theme === "dark"
+              ? "bg-gradient-to-br from-blue-600/20 to-purple-600/20"
+              : "bg-gradient-to-br from-blue-300/30 to-purple-300/30"
+          }`}
+        />
+        <div
+          className={`absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full blur-3xl opacity-20 animate-pulse delay-1000 ${
+            theme === "dark"
+              ? "bg-gradient-to-br from-purple-600/20 to-pink-600/20"
+              : "bg-gradient-to-br from-purple-300/30 to-pink-300/30"
+          }`}
+        />
+      </div>
 
-      <div
-        className={`absolute top-10 left-10 w-24 h-24 rounded-full blur-2xl animate-pulse backdrop-blur-3xl ${
-          theme === "dark"
-            ? "bg-gradient-to-br from-blue-600/40 to-purple-600/40"
-            : "bg-gradient-to-br from-blue-400/20 to-purple-400/20"
-        }`}
-      />
-      <div
-        className={`absolute bottom-10 right-10 w-32 h-32 rounded-full blur-2xl animate-pulse delay-1000 backdrop-blur-3xl ${
-          theme === "dark"
-            ? "bg-gradient-to-br from-purple-600/40 to-pink-600/40"
-            : "bg-gradient-to-br from-purple-400/20 to-pink-400/20"
-        }`}
-      />
-
-      <div className="flex items-center justify-between mb-1 sm:mb-2 relative px-1 sm:px-2">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4 relative z-10">
         <button
           onClick={onBackToMenu}
-          className={`flex items-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl backdrop-blur-xl border transition-all duration-300 hover:scale-105 shadow-lg text-xs sm:text-sm ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl backdrop-blur-2xl border transition-all duration-300 hover:scale-105 shadow-xl ${
             theme === "dark"
-              ? "bg-white/10 border-white/20 hover:bg-white/20 text-white/90"
-              : "bg-black/20 border-black/30 hover:bg-black/30 text-black/80"
+              ? "bg-white/5 border-white/10 hover:bg-white/10 text-white/90 shadow-black/20"
+              : "bg-white/20 border-white/30 hover:bg-white/30 text-black/80 shadow-black/10"
           }`}
         >
-          <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4" />
-          <span className="hidden xs:inline font-medium">Меню</span>
+          <ArrowLeft className="w-4 h-4" />
+          <span className="font-medium text-sm">Меню</span>
         </button>
 
         <div
-          className={`text-center backdrop-blur-xl rounded-xl border px-2 sm:px-3 py-1 sm:py-1.5 shadow-lg ${
-            theme === "dark" ? "bg-black/30 border-white/20" : "bg-white/20 border-white/30"
+          className={`text-center backdrop-blur-2xl rounded-2xl border px-4 py-2.5 shadow-xl ${
+            theme === "dark" ? "bg-black/20 border-white/10" : "bg-white/30 border-white/40"
           }`}
         >
           <h2
-            className={`font-bold text-xs sm:text-sm bg-gradient-to-r bg-clip-text text-transparent ${
+            className={`font-bold text-sm bg-gradient-to-r bg-clip-text text-transparent ${
               theme === "dark" ? "from-blue-400 to-purple-400" : "from-blue-600 to-purple-600"
             }`}
           >
             StarCheckers
           </h2>
-          <p className={`text-xs ${theme === "dark" ? "text-white/70" : "text-black/70"}`}>
+          <p className={`text-xs ${theme === "dark" ? "text-white/60" : "text-black/60"}`}>
             {mode === "bot" &&
               `ИИ (${difficulty === "easy" ? "Легко" : difficulty === "medium" ? "Средне" : "Сложно"})`}
             {mode === "local" && "Локальная игра"}
@@ -237,44 +233,63 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
 
         <button
           onClick={resetGame}
-          className={`flex items-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl backdrop-blur-xl border transition-all duration-300 hover:scale-105 shadow-lg ${
+          className={`flex items-center justify-center p-2.5 rounded-2xl backdrop-blur-2xl border transition-all duration-300 hover:scale-105 shadow-xl ${
             theme === "dark"
-              ? "bg-white/10 border-white/20 hover:bg-white/20 text-white/90"
-              : "bg-black/20 border-black/30 hover:bg-black/30 text-black/80"
+              ? "bg-white/5 border-white/10 hover:bg-white/10 text-white/90"
+              : "bg-white/20 border-white/30 hover:bg-white/30 text-black/80"
           }`}
         >
-          <RotateCcw className="w-3 h-3 sm:w-4 sm:h-4" />
+          <RotateCcw className="w-4 h-4" />
         </button>
       </div>
 
-      <div className="flex-1 flex items-center justify-center px-1 sm:px-2">
-        <div className="relative w-full max-w-[min(80vw,70vh,400px)] aspect-square">
+      {/* Game Board */}
+      <div className="flex-1 flex items-center justify-center px-2">
+        <div className="relative w-full max-w-[min(85vw,75vh,450px)] aspect-square">
+          {/* Board shadow layers */}
           <div
-            className={`absolute inset-0 rounded-2xl blur-2xl transform translate-y-4 scale-105 ${
+            className={`absolute inset-0 rounded-3xl blur-3xl transform translate-y-8 scale-110 ${
               theme === "dark"
-                ? "bg-gradient-to-br from-black/60 to-gray-900/80"
-                : "bg-gradient-to-br from-black/30 to-black/50"
+                ? "bg-gradient-to-br from-black/80 to-gray-900/90"
+                : "bg-gradient-to-br from-black/20 to-gray-600/30"
             }`}
           />
           <div
-            className={`absolute inset-0 rounded-xl blur-lg transform translate-y-2 scale-102 ${
-              theme === "dark" ? "bg-black/40" : "bg-black/20"
+            className={`absolute inset-0 rounded-2xl blur-xl transform translate-y-4 scale-105 ${
+              theme === "dark" ? "bg-black/60" : "bg-black/15"
             }`}
           />
 
+          {/* Main board container */}
           <div
-            className={`relative backdrop-blur-2xl rounded-2xl border p-1 sm:p-2 shadow-2xl ${
-              theme === "dark" ? "bg-black/40 border-white/20" : "bg-white/20 border-white/30"
+            className={`relative backdrop-blur-3xl rounded-3xl border-2 p-3 shadow-2xl transform-gpu ${
+              theme === "dark"
+                ? "bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-900/50 border-white/10"
+                : "bg-gradient-to-br from-white/40 via-blue-50/30 to-indigo-100/40 border-white/40"
             }`}
+            style={{
+              transform: "perspective(1000px) rotateX(5deg)",
+              transformStyle: "preserve-3d",
+            }}
           >
+            {/* Inner board frame */}
             <div
-              className={`backdrop-blur-xl rounded-xl border p-0.5 sm:p-1 ${
+              className={`backdrop-blur-2xl rounded-2xl border p-2 ${
                 theme === "dark"
-                  ? "bg-gradient-to-br from-amber-900/40 to-orange-900/40 border-white/10"
-                  : "bg-gradient-to-br from-amber-100/30 to-orange-100/30 border-white/20"
+                  ? "bg-gradient-to-br from-amber-900/30 via-orange-900/20 to-red-900/30 border-white/5"
+                  : "bg-gradient-to-br from-amber-100/40 via-orange-100/30 to-red-100/40 border-white/30"
               }`}
+              style={{
+                transform: "translateZ(10px)",
+              }}
             >
-              <div className="grid grid-cols-8 gap-0 w-full h-full rounded-lg overflow-hidden shadow-inner">
+              {/* Board grid */}
+              <div
+                className="grid grid-cols-8 gap-0.5 w-full h-full rounded-xl overflow-hidden shadow-inner"
+                style={{
+                  transform: "translateZ(5px)",
+                }}
+              >
                 {state.board.map((row, rowIndex) =>
                   row.map((piece, colIndex) => (
                     <BoardSquare
@@ -298,23 +313,27 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
         </div>
       </div>
 
-      <div className="text-center space-y-1 px-1 sm:px-2 pb-1">
+      {/* Status and info */}
+      <div className="text-center space-y-3 px-2 pb-2 relative z-10">
+        {/* Current turn indicator */}
         <div
-          className={`inline-flex items-center gap-2 backdrop-blur-xl rounded-full px-3 py-1.5 border shadow-lg ${
-            theme === "dark" ? "bg-black/30 border-white/20" : "bg-white/20 border-white/30"
+          className={`inline-flex items-center gap-3 backdrop-blur-2xl rounded-full px-4 py-3 border shadow-xl min-h-[48px] min-w-[160px] justify-center ${
+            theme === "dark" ? "bg-black/30 border-white/10" : "bg-white/30 border-white/40"
           }`}
         >
           <div
-            className={`w-2.5 h-2.5 rounded-full ${
+            className={`w-3 h-3 rounded-full flex-shrink-0 shadow-lg ${
               state.currentPlayer === "white"
                 ? "bg-gradient-to-br from-gray-100 to-gray-300 border border-gray-400"
                 : "bg-gradient-to-br from-gray-700 to-gray-900 border border-gray-600"
             }`}
           />
-          <p className={`text-xs font-semibold ${theme === "dark" ? "text-white/90" : "text-black/90"}`}>
+          <p
+            className={`text-sm font-semibold whitespace-nowrap ${theme === "dark" ? "text-white/90" : "text-black/90"}`}
+          >
             {isAIThinking ? (
-              <span className="flex items-center gap-1">
-                <div className="w-2 h-2 border border-blue-400 border-t-transparent rounded-full animate-spin" />
+              <span className="flex items-center gap-2">
+                <div className="w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
                 Бот думает...
               </span>
             ) : (
@@ -323,15 +342,16 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
           </p>
         </div>
 
+        {/* Game status */}
         {state.gameStatus !== "playing" && (
           <div
-            className={`backdrop-blur-xl border rounded-full px-3 py-1.5 shadow-lg animate-pulse ${
+            className={`backdrop-blur-2xl border rounded-full px-4 py-3 shadow-xl animate-pulse min-h-[48px] flex items-center justify-center ${
               theme === "dark"
-                ? "bg-gradient-to-r from-green-600/40 to-emerald-600/40 border-green-400/40 text-white"
-                : "bg-gradient-to-r from-green-400/30 to-emerald-400/30 border-green-400/40 text-black"
+                ? "bg-gradient-to-r from-green-600/30 to-emerald-600/30 border-green-400/30 text-white"
+                : "bg-gradient-to-r from-green-400/40 to-emerald-400/40 border-green-400/50 text-black"
             }`}
           >
-            <p className="font-bold text-xs">
+            <p className="font-bold text-sm whitespace-nowrap">
               {state.gameStatus === "white-wins" && "Белые победили!"}
               {state.gameStatus === "black-wins" && "Черные победили!"}
               {state.gameStatus === "draw" && "Ничья!"}
@@ -339,22 +359,24 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
           </div>
         )}
 
+        {/* Captured pieces */}
         {state.capturedPieces.length > 0 && (
           <div
-            className={`backdrop-blur-xl rounded-xl border p-1.5 max-w-xs mx-auto ${
-              theme === "dark" ? "bg-black/20 border-white/10" : "bg-white/5 border-white/10"
+            className={`backdrop-blur-2xl rounded-2xl border p-3 max-w-sm mx-auto min-h-[60px] ${
+              theme === "dark" ? "bg-black/20 border-white/10" : "bg-white/20 border-white/30"
             }`}
           >
-            <p className={`text-xs mb-1 ${theme === "dark" ? "text-white/70" : "text-black/70"}`}>Взятые:</p>
-            <div className="flex justify-center gap-0.5 flex-wrap">
+            <p className={`text-xs mb-2 ${theme === "dark" ? "text-white/60" : "text-black/60"}`}>Взятые:</p>
+            <div className="flex justify-center gap-1 flex-wrap">
               {state.capturedPieces.map((piece, index) => (
                 <div
                   key={`captured-${piece.id}-${index}`}
-                  className={`w-3 h-3 rounded-full border backdrop-blur-xl ${
+                  className={`w-4 h-4 rounded-full border backdrop-blur-xl shadow-lg ${
                     piece.color === "white"
-                      ? "bg-gradient-to-br from-gray-100/80 to-gray-300/80 border-gray-300"
-                      : "bg-gradient-to-br from-gray-700/80 to-gray-900/80 border-gray-600"
-                  } ${piece.type === "king" ? "ring-1 ring-yellow-400/50" : ""}`}
+                      ? "bg-gradient-to-br from-gray-100/90 to-gray-300/90 border-gray-300"
+                      : "bg-gradient-to-br from-gray-700/90 to-gray-900/90 border-gray-600"
+                  } ${piece.type === "king" ? "ring-2 ring-yellow-400/60" : ""}`}
+                  style={{ borderRadius: "50%" }}
                 />
               ))}
             </div>

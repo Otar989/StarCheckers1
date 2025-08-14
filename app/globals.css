@@ -239,8 +239,9 @@
   }
 
   .touch-target-large {
-    min-height: 56px;
-    min-width: 56px;
+    min-height: 60px;
+    min-width: 60px;
+    position: relative;
   }
 
   /* Enhanced responsive game board sizing */
@@ -343,7 +344,7 @@
   transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   cursor: pointer;
   /* Enhanced touch handling */
-  -webkit-tap-highlight-color: transparent;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
   touch-action: manipulation;
 }
 
@@ -354,6 +355,12 @@
   transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   border-radius: 12px;
   overflow: hidden;
+}
+
+.board-square-3d::before,
+.board-square-3d::after {
+  /* Явно указываем что псевдоэлементы не блокируют события */
+  pointer-events: none;
 }
 
 .board-square-3d::before {
@@ -567,6 +574,25 @@
   animation: valid-move-pulse 2s ease-in-out infinite;
 }
 
+.valid-move-indicator {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.valid-move-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(34, 197, 94, 0.8);
+  box-shadow: 0 0 20px rgba(34, 197, 94, 0.6);
+  animation: pulse 2s ease-in-out infinite;
+}
+
 @keyframes valid-move-pulse {
   0%,
   100% {
@@ -576,6 +602,18 @@
   50% {
     box-shadow: 0 25px 80px rgba(34, 197, 94, 0.5), 0 12px 40px rgba(34, 197, 94, 0.4), 0 0 0 4px rgba(34, 197, 94, 0.6),
       inset 0 2px 4px rgba(255, 255, 255, 0.3);
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
   }
 }
 

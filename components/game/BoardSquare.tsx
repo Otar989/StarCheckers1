@@ -1,6 +1,5 @@
 "use client"
-import { useState, useEffect } from "react"
-import type React from "react"
+import { useState } from "react"
 import { useTheme } from "@/hooks/use-theme"
 
 import type { Piece } from "./GameProvider"
@@ -39,107 +38,13 @@ export function BoardSquare({
   animatingPiece,
 }: BoardSquareProps) {
   const [isPressed, setIsPressed] = useState(false)
-  const [justCaptured, setJustCaptured] = useState(false)
-  const [justMoved, setJustMoved] = useState(false)
-  const [touchStart, setTouchStart] = useState<{ x: number; y: number; time: number } | null>(null)
-  const [isDragging, setIsDragging] = useState(false)
   const { theme } = useTheme()
   const isDarkSquare = (row + col) % 2 === 1
   const isDarkTheme = theme === "dark"
 
-  useEffect(() => {
-    if (!piece && justCaptured) {
-      const timer = setTimeout(() => setJustCaptured(false), 500)
-      return () => clearTimeout(timer)
-    }
-  }, [piece, justCaptured])
-
-  useEffect(() => {
-    if (piece && justMoved) {
-      const timer = setTimeout(() => setJustMoved(false), 300)
-      return () => clearTimeout(timer)
-    }
-  }, [piece, justMoved])
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setIsPressed(true)
-    setTouchStart({
-      x: e.touches[0].clientX,
-      y: e.touches[0].clientY,
-      time: Date.now(),
-    })
-    setIsDragging(false)
-
-    // Не блокируем стандартное поведение в Telegram
+  const handleClick = () => {
+    onClick()
   }
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    setIsPressed(false)
-
-    if (!isDragging && touchStart) {
-      const touch = e.changedTouches[0]
-      const touchEnd = {
-        x: touch.clientX,
-        y: touch.clientY,
-      }
-
-      const distanceX = Math.abs(touchStart.x - touchEnd.x)
-      const distanceY = Math.abs(touchStart.y - touchEnd.y)
-      const totalDistance = Math.sqrt(distanceX * distanceX + distanceY * distanceY)
-      const timeDiff = Date.now() - touchStart.time
-
-      // Более мягкие условия для клика - если движение небольшое, считаем это кликом
-      if (totalDistance < 30 && timeDiff < 800) {
-        onClick()
-      }
-    }
-
-    // Обработка drag and drop
-    if (isDragging) {
-      const touch = e.changedTouches[0]
-      if (onDrop) {
-        const element = document.elementFromPoint(touch.clientX, touch.clientY)
-        const squareEl = element?.closest('[data-square="true"]') as HTMLElement | null
-        if (squareEl) {
-          const dropRow = Number.parseInt(squareEl.getAttribute("data-row") || "-1")
-          const dropCol = Number.parseInt(squareEl.getAttribute("data-col") || "-1")
-          onDrop(dropRow, dropCol)
-        }
-      }
-    }
-
-    setIsDragging(false)
-    setTouchStart(null)
-  }
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!touchStart) return
-
-    const currentTouch = e.touches[0]
-    const deltaX = Math.abs(currentTouch.clientX - touchStart.x)
-    const deltaY = Math.abs(currentTouch.clientY - touchStart.y)
-
-    if (!isDragging && (deltaX > 15 || deltaY > 15)) {
-      setIsDragging(true)
-      onDragStart?.(row, col)
-    }
-
-    if (isDragging) {
-      e.preventDefault()
-      const element = document.elementFromPoint(currentTouch.clientX, currentTouch.clientY)
-      const squareEl = element?.closest('[data-square="true"]') as HTMLElement | null
-      if (squareEl) {
-        const overRow = Number.parseInt(squareEl.getAttribute("data-row") || "-1")
-        const overCol = Number.parseInt(squareEl.getAttribute("data-col") || "-1")
-        onDragOver?.(overRow, overCol)
-      } else {
-        onDragOver?.(-1, -1)
-      }
-    }
-  }
-
-  const isAnimatingTo = animatingPiece?.to.row === row && animatingPiece?.to.col === col
-  const isAnimatingFrom = animatingPiece?.from.row === row && animatingPiece?.from.col === col
 
   return (
     <div
@@ -149,158 +54,165 @@ export function BoardSquare({
         ${
           isDarkSquare
             ? isDarkTheme
-              ? "bg-gradient-to-br from-slate-800/60 via-slate-700/40 to-slate-900/80"
-              : "bg-gradient-to-br from-blue-100/60 via-indigo-50/40 to-purple-100/80"
+              ? "bg-gradient-to-br from-slate-700/80 via-slate-600/60 to-slate-800/90"
+              : "bg-gradient-to-br from-amber-200/80 via-orange-100/60 to-red-200/90"
             : isDarkTheme
-              ? "bg-gradient-to-br from-slate-600/40 via-slate-500/20 to-slate-700/60"
-              : "bg-gradient-to-br from-white/80 via-blue-50/60 to-indigo-100/80"
+              ? "bg-gradient-to-br from-slate-500/60 via-slate-400/40 to-slate-600/80"
+              : "bg-gradient-to-br from-amber-50/90 via-yellow-50/70 to-orange-50/90"
         }
-        backdrop-blur-xl border-2
+        backdrop-blur-xl border
         ${
           isDarkSquare
             ? isDarkTheme
-              ? "border-slate-600/30 shadow-inner shadow-slate-900/20"
-              : "border-indigo-200/40 shadow-inner shadow-indigo-300/20"
+              ? "border-slate-600/40 shadow-inner shadow-slate-900/30"
+              : "border-orange-300/50 shadow-inner shadow-orange-400/20"
             : isDarkTheme
-              ? "border-slate-500/20 shadow-inner shadow-slate-800/10"
-              : "border-white/50 shadow-inner shadow-blue-200/20"
+              ? "border-slate-500/30 shadow-inner shadow-slate-800/20"
+              : "border-yellow-200/60 shadow-inner shadow-yellow-300/20"
         }
-        ${isSelected ? "ring-4 ring-cyan-400/60 ring-inset shadow-2xl shadow-cyan-400/30 scale-105" : ""}
-        ${isValidMove ? "ring-4 ring-emerald-400/60 ring-inset shadow-2xl shadow-emerald-400/30" : ""}
-        ${isDragTarget ? "ring-4 ring-yellow-400/60 ring-inset shadow-2xl shadow-yellow-400/30 scale-105" : ""}
+        ${isSelected ? "ring-4 ring-cyan-400/80 ring-inset shadow-2xl shadow-cyan-400/40 scale-105 z-10" : ""}
+        ${isValidMove ? "ring-4 ring-emerald-400/80 ring-inset shadow-2xl shadow-emerald-400/40" : ""}
+        ${isDragTarget ? "ring-4 ring-yellow-400/80 ring-inset shadow-2xl shadow-yellow-400/40 scale-105" : ""}
         ${isPressed ? "scale-95 shadow-inner" : "hover:scale-102 active:scale-95"}
-        ${justCaptured ? "animate-pulse" : ""}
-        perspective-1000 transform-style-preserve-3d
       `}
-      data-square="true"
-      data-row={row}
-      data-col={col}
-      onClick={onClick}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-      onTouchMove={handleTouchMove}
-      onDragOver={(e) => {
-        e.preventDefault()
-        onDragOver?.(row, col)
-      }}
-      onDrop={(e) => {
-        e.preventDefault()
-        onDrop?.(row, col)
+      onClick={handleClick}
+      onTouchEnd={(e) => {
+        e.currentTarget.click()
       }}
       onMouseDown={() => setIsPressed(true)}
       onMouseUp={() => setIsPressed(false)}
       onMouseLeave={() => setIsPressed(false)}
+      onTouchStart={() => setIsPressed(true)}
+      style={{
+        minHeight: "40px",
+        minWidth: "40px",
+        touchAction: "manipulation",
+        transform: "perspective(800px) rotateX(2deg)",
+        transformStyle: "preserve-3d",
+      }}
     >
-      <div className="absolute inset-0 rounded-lg overflow-hidden">
+      {/* Square 3D effects */}
+      <div className="absolute inset-0 rounded-sm overflow-hidden">
         <div
           className={`
             absolute inset-0 
             ${
               isDarkTheme
-                ? "bg-gradient-to-br from-white/5 via-transparent to-black/10"
-                : "bg-gradient-to-br from-white/40 via-transparent to-black/5"
+                ? "bg-gradient-to-br from-white/8 via-transparent to-black/15"
+                : "bg-gradient-to-br from-white/60 via-transparent to-black/8"
             }
           `}
+          style={{ transform: "translateZ(2px)" }}
         />
         <div
           className={`
-            absolute top-0 left-0 w-full h-1/3 
+            absolute top-0 left-0 w-full h-1/2 
             ${
               isDarkTheme
-                ? "bg-gradient-to-b from-white/10 to-transparent"
-                : "bg-gradient-to-b from-white/60 to-transparent"
+                ? "bg-gradient-to-b from-white/15 to-transparent"
+                : "bg-gradient-to-b from-white/80 to-transparent"
             }
           `}
+          style={{ transform: "translateZ(1px)" }}
         />
       </div>
 
-      {isDarkSquare && (
-        <div className="absolute inset-2 opacity-20">
-          <div
-            className={`w-full h-full ${isDarkTheme ? "bg-slate-400/10" : "bg-indigo-300/20"} transform rotate-45 rounded-sm`}
-          />
-        </div>
-      )}
-
-      {isSelected && (
-        <div
-          className="absolute inset-0 bg-gradient-radial from-cyan-400/30 via-cyan-300/20 to-transparent backdrop-blur-sm animate-pulse rounded-lg"
-          style={{ transform: "translateZ(10px)" }}
-        />
-      )}
-
-      {isValidMove && (
-        <div
-          className="absolute inset-0 bg-gradient-radial from-emerald-400/30 via-emerald-300/20 to-transparent backdrop-blur-sm animate-pulse rounded-lg"
-          style={{ transform: "translateZ(10px)" }}
-        />
-      )}
-
+      {/* Valid move indicator */}
       {isValidMove && !piece && (
         <div className="relative transform-gpu" style={{ transform: "translateZ(20px)" }}>
           <div
             className={`
-            w-6 h-6 rounded-full backdrop-blur-xl border-2 shadow-2xl animate-bounce
+            w-5 h-5 rounded-full backdrop-blur-2xl border-2 shadow-2xl animate-bounce
             ${
               isDarkTheme
-                ? "bg-gradient-to-br from-emerald-400/80 to-teal-500/80 border-emerald-300/60 shadow-emerald-400/40"
-                : "bg-gradient-to-br from-emerald-300/90 to-teal-400/90 border-emerald-200/80 shadow-emerald-300/50"
+                ? "bg-gradient-to-br from-emerald-400/90 to-teal-500/90 border-emerald-300/80 shadow-emerald-400/60"
+                : "bg-gradient-to-br from-emerald-300/95 to-teal-400/95 border-emerald-200/90 shadow-emerald-300/70"
             }
           `}
           />
-          <div className="absolute inset-0 w-6 h-6 rounded-full bg-emerald-400/30 animate-ping" />
-          <div className="absolute inset-1 rounded-full bg-gradient-to-br from-white/40 to-transparent" />
+          <div className="absolute inset-0 w-5 h-5 rounded-full bg-emerald-400/40 animate-ping" />
+          <div
+            className="absolute inset-1 rounded-full bg-gradient-to-br from-white/60 to-transparent"
+            style={{ borderRadius: "50%" }}
+          />
         </div>
       )}
 
-      {piece && !isAnimatingFrom && (
+      {/* Game piece */}
+      {piece && (
         <div
-          className={`relative w-4/5 h-4/5 group transform-gpu ${justMoved ? "animate-bounce" : ""}`}
-          style={{ transform: `translateZ(30px) ${isSelected ? "scale(1.1)" : "scale(1)"}` }}
-          draggable
-          onDragStart={() => onDragStart?.(row, col)}
+          className={`relative w-4/5 h-4/5 group transform-gpu`}
+          style={{
+            transform: `translateZ(25px) ${isSelected ? "scale(1.15)" : "scale(1)"}`,
+            transition: "all 0.3s ease",
+          }}
         >
           <div
             className={`
-              w-full h-full rounded-full relative transition-all duration-500 transform-gpu
+              w-full h-full rounded-full relative transition-all duration-300 transform-gpu
               ${
                 piece.color === "white"
                   ? isDarkTheme
-                    ? "bg-gradient-to-br from-slate-100/95 via-white/90 to-slate-200/95 border-3 border-slate-300/70 shadow-2xl shadow-white/20"
-                    : "bg-gradient-to-br from-white/95 via-blue-50/90 to-indigo-100/95 border-3 border-indigo-200/70 shadow-2xl shadow-indigo-200/30"
+                    ? "bg-gradient-to-br from-slate-50/98 via-white/95 to-slate-100/98 shadow-2xl shadow-white/30"
+                    : "bg-gradient-to-br from-white/98 via-blue-50/95 to-indigo-50/98 shadow-2xl shadow-indigo-200/40"
                   : isDarkTheme
-                    ? "bg-gradient-to-br from-slate-700/95 via-slate-800/90 to-slate-900/95 border-3 border-slate-600/70 shadow-2xl shadow-slate-900/40"
-                    : "bg-gradient-to-br from-slate-600/95 via-slate-700/90 to-slate-800/95 border-3 border-slate-500/70 shadow-2xl shadow-slate-700/40"
+                    ? "bg-gradient-to-br from-slate-600/98 via-slate-700/95 to-slate-800/98 shadow-2xl shadow-slate-900/60"
+                    : "bg-gradient-to-br from-slate-500/98 via-slate-600/95 to-slate-700/98 shadow-2xl shadow-slate-700/50"
               }
-              backdrop-blur-xl hover:scale-105
+              backdrop-blur-2xl hover:scale-110 border-2
+              ${
+                piece.color === "white"
+                  ? isDarkTheme
+                    ? "border-slate-200/60"
+                    : "border-indigo-200/80"
+                  : isDarkTheme
+                    ? "border-slate-500/60"
+                    : "border-slate-400/80"
+              }
             `}
             style={{
+              borderRadius: "50%",
+              aspectRatio: "1",
               boxShadow:
                 piece.color === "white"
                   ? isDarkTheme
-                    ? "0 12px 40px rgba(255,255,255,0.15), inset 0 4px 12px rgba(255,255,255,0.2)"
-                    : "0 12px 40px rgba(99,102,241,0.2), inset 0 4px 12px rgba(255,255,255,0.3)"
+                    ? "0 15px 50px rgba(255,255,255,0.2), inset 0 5px 15px rgba(255,255,255,0.3)"
+                    : "0 15px 50px rgba(99,102,241,0.25), inset 0 5px 15px rgba(255,255,255,0.4)"
                   : isDarkTheme
-                    ? "0 12px 40px rgba(0,0,0,0.4), inset 0 4px 12px rgba(255,255,255,0.1)"
-                    : "0 12px 40px rgba(0,0,0,0.3), inset 0 4px 12px rgba(255,255,255,0.1)",
+                    ? "0 15px 50px rgba(0,0,0,0.5), inset 0 5px 15px rgba(255,255,255,0.15)"
+                    : "0 15px 50px rgba(0,0,0,0.35), inset 0 5px 15px rgba(255,255,255,0.2)",
             }}
           >
-            <div className="absolute inset-1 rounded-full bg-gradient-to-br from-white/50 via-white/20 to-transparent" />
-            <div className="absolute top-1 left-1 w-1/3 h-1/3 rounded-full bg-white/60 blur-sm" />
+            {/* Piece highlight */}
+            <div
+              className="absolute inset-1 rounded-full bg-gradient-to-br from-white/70 via-white/30 to-transparent"
+              style={{ borderRadius: "50%" }}
+            />
+            <div
+              className="absolute top-1 left-1 w-1/3 h-1/3 rounded-full bg-white/80 blur-sm"
+              style={{ borderRadius: "50%" }}
+            />
 
-            <div className="absolute inset-3 rounded-full opacity-30">
+            {/* Piece inner pattern */}
+            <div className="absolute inset-2 rounded-full opacity-40" style={{ borderRadius: "50%" }}>
               <div
-                className={`w-full h-full rounded-full ${piece.color === "white" ? "bg-gradient-to-br from-blue-200/40 to-purple-200/40" : "bg-gradient-to-br from-slate-400/40 to-slate-600/40"}`}
+                className={`w-full h-full rounded-full ${
+                  piece.color === "white"
+                    ? "bg-gradient-to-br from-blue-200/50 to-purple-200/50"
+                    : "bg-gradient-to-br from-slate-300/50 to-slate-500/50"
+                }`}
+                style={{ borderRadius: "50%" }}
               />
             </div>
 
+            {/* King crown */}
             {piece.type === "king" && (
               <div
                 className="absolute inset-0 flex items-center justify-center transform-gpu"
-                style={{ transform: "translateZ(10px)" }}
+                style={{ transform: "translateZ(15px)" }}
               >
-                <div className={`w-8 h-8 drop-shadow-2xl ${isDarkTheme ? "text-yellow-300" : "text-yellow-500"}`}>
-                  <div className="absolute inset-0 bg-gradient-radial from-yellow-400/60 to-yellow-600/60 rounded-full backdrop-blur-sm animate-pulse" />
+                <div className={`w-6 h-6 drop-shadow-2xl ${isDarkTheme ? "text-yellow-300" : "text-yellow-500"}`}>
+                  <div className="absolute inset-0 bg-gradient-radial from-yellow-400/80 to-yellow-600/80 rounded-full backdrop-blur-sm animate-pulse" />
                   <svg
                     viewBox="0 0 24 24"
                     fill="currentColor"
@@ -315,31 +227,19 @@ export function BoardSquare({
         </div>
       )}
 
-      {justCaptured && (
-        <div className="absolute inset-0 pointer-events-none">
-          {[...Array(12)].map((_, i) => (
-            <div
-              key={i}
-              className={`absolute w-3 h-3 rounded-full backdrop-blur-sm border transform-gpu ${
-                isDarkTheme
-                  ? "bg-gradient-to-br from-red-400/90 to-orange-500/90 border-red-300/60"
-                  : "bg-gradient-to-br from-red-300/90 to-orange-400/90 border-red-200/60"
-              }`}
-              style={{
-                left: `${10 + i * 7}%`,
-                top: `${10 + (i % 4) * 20}%`,
-                animation: `particle-explosion 1000ms ease-out ${i * 40}ms forwards`,
-                transform: `translateZ(${20 + i * 5}px)`,
-              }}
-            />
-          ))}
-        </div>
+      {/* Selection glow */}
+      {isSelected && (
+        <div
+          className="absolute inset-0 bg-gradient-radial from-cyan-400/40 via-cyan-300/25 to-transparent backdrop-blur-sm animate-pulse rounded-sm pointer-events-none"
+          style={{ transform: "translateZ(10px)" }}
+        />
       )}
 
-      {isDragTarget && (
+      {/* Valid move glow */}
+      {isValidMove && (
         <div
-          className="absolute inset-0 bg-gradient-radial from-yellow-400/30 via-yellow-300/20 to-transparent backdrop-blur-sm animate-pulse rounded-lg pointer-events-none"
-          style={{ transform: "translateZ(15px)" }}
+          className="absolute inset-0 bg-gradient-radial from-emerald-400/40 via-emerald-300/25 to-transparent backdrop-blur-sm animate-pulse rounded-sm pointer-events-none"
+          style={{ transform: "translateZ(10px)" }}
         />
       )}
     </div>
