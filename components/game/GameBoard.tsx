@@ -28,30 +28,32 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
 
   useEffect(() => {
     if (mode === "bot" && state.currentPlayer === "black" && state.gameStatus === "playing" && !isAIThinking) {
-      setIsAIThinking(true)
-
-      const thinkingTime = difficulty === "easy" ? 200 : difficulty === "medium" ? 400 : 600
-
       setTimeout(() => {
-        const aiMove = AIEngine.getBestMove(state.board, difficulty)
+        setIsAIThinking(true)
 
-        if (aiMove) {
-          const moveResult = GameLogic.makeMove(state.board, aiMove.from, aiMove.to)
+        const thinkingTime = difficulty === "easy" ? 200 : difficulty === "medium" ? 400 : 600
 
-          if (moveResult.success && moveResult.newState) {
-            dispatch({ type: "SET_GAME_STATE", state: moveResult.newState })
-            playSound(moveResult.capturedPieces.length > 0 ? "capture" : "move")
-            hapticFeedback(moveResult.capturedPieces.length > 0 ? "medium" : "light")
+        setTimeout(() => {
+          const aiMove = AIEngine.getBestMove(state.board, difficulty)
 
-            if (moveResult.newState.gameStatus !== "playing") {
-              playSound("win")
-              hapticFeedback("heavy")
+          if (aiMove) {
+            const moveResult = GameLogic.makeMove(state.board, aiMove.from, aiMove.to)
+
+            if (moveResult.success && moveResult.newState) {
+              dispatch({ type: "SET_GAME_STATE", state: moveResult.newState })
+              playSound(moveResult.capturedPieces.length > 0 ? "capture" : "move")
+              hapticFeedback(moveResult.capturedPieces.length > 0 ? "medium" : "light")
+
+              if (moveResult.newState.gameStatus !== "playing") {
+                playSound("win")
+                hapticFeedback("heavy")
+              }
             }
           }
-        }
 
-        setIsAIThinking(false)
-      }, thinkingTime)
+          setIsAIThinking(false)
+        }, thinkingTime)
+      }, 400) // Задержка 400ms перед началом думания ИИ
     }
   }, [
     state.currentPlayer,
@@ -180,8 +182,8 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
         minHeight: "100dvh",
       }}
     >
-      {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
+        {/* Main floating orbs */}
         <div
           className={`absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-3xl opacity-30 animate-pulse ${
             theme === "dark"
@@ -195,6 +197,44 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
               ? "bg-gradient-to-br from-purple-600/20 to-pink-600/20"
               : "bg-gradient-to-br from-purple-300/30 to-pink-300/30"
           }`}
+        />
+
+        {/* Moving gradient waves */}
+        <div
+          className={`absolute inset-0 opacity-20 ${theme === "dark" ? "opacity-30" : "opacity-20"}`}
+          style={{
+            background:
+              theme === "dark"
+                ? "linear-gradient(120deg, transparent 20%, rgba(59, 130, 246, 0.1) 40%, rgba(147, 51, 234, 0.1) 60%, transparent 80%)"
+                : "linear-gradient(120deg, transparent 20%, rgba(59, 130, 246, 0.2) 40%, rgba(147, 51, 234, 0.2) 60%, transparent 80%)",
+            animation: "moveWave 10s ease-in-out infinite alternate",
+          }}
+        />
+
+        {/* Floating particles */}
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div
+            key={i}
+            className={`absolute w-1.5 h-1.5 rounded-full blur-sm ${theme === "dark" ? "bg-white/10" : "bg-black/10"}`}
+            style={{
+              left: `${20 + Math.random() * 60}%`,
+              top: `${20 + Math.random() * 60}%`,
+              animation: `gentleFloat ${4 + Math.random() * 3}s ease-in-out infinite`,
+              animationDelay: `${Math.random() * 3}s`,
+            }}
+          />
+        ))}
+
+        {/* Subtle light rays */}
+        <div
+          className={`absolute top-0 left-1/2 w-px h-full transform -translate-x-1/2 opacity-10 ${
+            theme === "dark"
+              ? "bg-gradient-to-b from-blue-400/20 via-transparent to-purple-400/20"
+              : "bg-gradient-to-b from-blue-600/20 via-transparent to-purple-600/20"
+          }`}
+          style={{
+            animation: "shimmer 6s ease-in-out infinite alternate",
+          }}
         />
       </div>
 

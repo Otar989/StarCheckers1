@@ -22,8 +22,8 @@ export function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps) {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      {/* Animated background elements */}
       <div className="absolute inset-0">
+        {/* Floating orbs with different animation speeds */}
         <div className="absolute top-20 left-10 w-32 h-32 bg-blue-500/20 rounded-full blur-xl animate-pulse" />
         <div
           className="absolute bottom-20 right-10 w-40 h-40 bg-purple-500/20 rounded-full blur-xl animate-pulse"
@@ -33,6 +33,29 @@ export function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps) {
           className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-60 h-60 bg-pink-500/10 rounded-full blur-xl animate-pulse"
           style={{ animationDelay: "2s" }}
         />
+
+        {/* Moving gradient overlay */}
+        <div
+          className="absolute inset-0 opacity-30"
+          style={{
+            background: "linear-gradient(45deg, transparent 30%, rgba(59, 130, 246, 0.1) 50%, transparent 70%)",
+            animation: "moveGradient 8s ease-in-out infinite alternate",
+          }}
+        />
+
+        {/* Floating particles */}
+        {Array.from({ length: 12 }).map((_, i) => (
+          <div
+            key={i}
+            className="absolute w-2 h-2 bg-white/20 rounded-full blur-sm"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              animation: `float ${3 + Math.random() * 4}s ease-in-out infinite`,
+              animationDelay: `${Math.random() * 2}s`,
+            }}
+          />
+        ))}
       </div>
 
       <div className="w-full max-w-md relative z-10">
