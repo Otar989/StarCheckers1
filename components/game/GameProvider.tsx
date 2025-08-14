@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { createContext, useContext, useReducer, useEffect, type ReactNode } from "react"
+import { createContext, useContext, useReducer, useEffect, useRef, type ReactNode } from "react"
 import { useGameStats } from "@/hooks/use-game-stats"
 import type { GameMode } from "@/app/page"
 
@@ -25,7 +25,7 @@ export interface GameState {
   capturedPieces: Piece[]
   gameStatus: "playing" | "white-wins" | "black-wins" | "draw"
   moveHistory: Move[]
-  gameMode: GameMode // добавил режим игры для правильной статистики
+  gameMode: GameMode
 }
 
 export interface Move {
@@ -39,7 +39,7 @@ type GameAction =
   | { type: "SELECT_PIECE"; piece: Piece | null }
   | { type: "MOVE_PIECE"; from: Position; to: Position }
   | { type: "SET_VALID_MOVES"; moves: Position[] }
-  | { type: "RESET_GAME"; gameMode?: GameMode } // добавил gameMode в reset
+  | { type: "RESET_GAME"; gameMode?: GameMode }
   | { type: "SET_GAME_STATE"; state: Partial<GameState> }
 
 const initialState: GameState = {
@@ -52,7 +52,7 @@ const initialState: GameState = {
   capturedPieces: [],
   gameStatus: "playing",
   moveHistory: [],
-  gameMode: "bot", // добавил режим игры по умолчанию
+  gameMode: "bot",
 }
 
 function gameReducer(state: GameState, action: GameAction): GameState {
@@ -77,7 +77,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       return {
         ...initialState,
         board: initializeBoard(),
-        gameMode: action.gameMode || state.gameMode, // сохраняем режим игры при сбросе
+        gameMode: action.gameMode || state.gameMode,
       }
 
     case "SET_GAME_STATE":
@@ -130,7 +130,7 @@ function initializeBoard(): (Piece | null)[][] {
 const GameContext = createContext<{
   state: GameState
   dispatch: React.Dispatch<GameAction>
-  setGameMode: (mode: GameMode) => void // добавил функцию для установки режима игры
+  setGameMode: (mode: GameMode) => void
 } | null>(null)
 
 export function GameProvider({ children }: { children: ReactNode }) {
@@ -140,19 +140,29 @@ export function GameProvider({ children }: { children: ReactNode }) {
   })
 
   const { recordWin, recordLoss, recordDraw } = useGameStats()
+  const statsRecordedRef = useRef(false)
 
   useEffect(() => {
-    if (state.gameStatus !== "playing") {
+    if (state.gameStatus === "playing") {
+      statsRecordedRef.current = false
+    }
+  }, [state.gameStatus])
+
+  useEffect(() => {
+    if (state.gameStatus !== "playing" && !statsRecordedRef.current) {
       // Отслеживаем статистику только в режиме против бота
       if (state.gameMode === "bot") {
         if (state.gameStatus === "white-wins") {
           // Игрок (белые) выиграл против бота
           recordWin()
+          statsRecordedRef.current = true
         } else if (state.gameStatus === "black-wins") {
           // Бот (черные) выиграл против игрока
           recordLoss()
+          statsRecordedRef.current = true
         } else if (state.gameStatus === "draw") {
           recordDraw()
+          statsRecordedRef.current = true
         }
       }
       // В локальном режиме статистика не ведется (играют два человека)
