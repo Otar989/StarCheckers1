@@ -76,43 +76,39 @@ export function BoardSquare({
   const handleTouchEnd = (e: React.TouchEvent) => {
     setIsPressed(false)
 
-    const touch = e.changedTouches[0]
+    if (!isDragging && touchStart) {
+      const touch = e.changedTouches[0]
+      const touchEnd = {
+        x: touch.clientX,
+        y: touch.clientY,
+      }
 
+      const distanceX = Math.abs(touchStart.x - touchEnd.x)
+      const distanceY = Math.abs(touchStart.y - touchEnd.y)
+      const totalDistance = Math.sqrt(distanceX * distanceX + distanceY * distanceY)
+      const timeDiff = Date.now() - touchStart.time
+
+      // Более мягкие условия для клика - если движение небольшое, считаем это кликом
+      if (totalDistance < 30 && timeDiff < 800) {
+        onClick()
+      }
+    }
+
+    // Обработка drag and drop
     if (isDragging) {
-      setIsDragging(false)
+      const touch = e.changedTouches[0]
       if (onDrop) {
         const element = document.elementFromPoint(touch.clientX, touch.clientY)
         const squareEl = element?.closest('[data-square="true"]') as HTMLElement | null
         if (squareEl) {
-          const dropRow = parseInt(squareEl.getAttribute('data-row') || '-1')
-          const dropCol = parseInt(squareEl.getAttribute('data-col') || '-1')
+          const dropRow = Number.parseInt(squareEl.getAttribute("data-row") || "-1")
+          const dropCol = Number.parseInt(squareEl.getAttribute("data-col") || "-1")
           onDrop(dropRow, dropCol)
         }
       }
-      setTouchStart(null)
-      return
     }
 
-    if (!touchStart) {
-      onClick()
-      return
-    }
-
-    const touchEnd = {
-      x: touch.clientX,
-      y: touch.clientY,
-    }
-
-    const distanceX = Math.abs(touchStart.x - touchEnd.x)
-    const distanceY = Math.abs(touchStart.y - touchEnd.y)
-    const totalDistance = Math.sqrt(distanceX * distanceX + distanceY * distanceY)
-    const timeDiff = Date.now() - touchStart.time
-
-    // Простая логика: если движение минимальное и быстрое - это клик
-    if (totalDistance < 20 && timeDiff < 500) {
-      onClick()
-    }
-
+    setIsDragging(false)
     setTouchStart(null)
   }
 
@@ -123,7 +119,7 @@ export function BoardSquare({
     const deltaX = Math.abs(currentTouch.clientX - touchStart.x)
     const deltaY = Math.abs(currentTouch.clientY - touchStart.y)
 
-    if (!isDragging && (deltaX > 10 || deltaY > 10)) {
+    if (!isDragging && (deltaX > 15 || deltaY > 15)) {
       setIsDragging(true)
       onDragStart?.(row, col)
     }
@@ -133,8 +129,8 @@ export function BoardSquare({
       const element = document.elementFromPoint(currentTouch.clientX, currentTouch.clientY)
       const squareEl = element?.closest('[data-square="true"]') as HTMLElement | null
       if (squareEl) {
-        const overRow = parseInt(squareEl.getAttribute('data-row') || '-1')
-        const overCol = parseInt(squareEl.getAttribute('data-col') || '-1')
+        const overRow = Number.parseInt(squareEl.getAttribute("data-row") || "-1")
+        const overCol = Number.parseInt(squareEl.getAttribute("data-col") || "-1")
         onDragOver?.(overRow, overCol)
       } else {
         onDragOver?.(-1, -1)
