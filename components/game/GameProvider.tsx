@@ -3,6 +3,7 @@
 import type React from "react"
 import { createContext, useContext, useReducer, useEffect, useRef, type ReactNode } from "react"
 import { useGameStats } from "@/hooks/use-game-stats"
+import { useTelegram } from "../telegram/TelegramProvider"
 import type { GameMode } from "@/app/page"
 
 // Game types
@@ -139,7 +140,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
     board: initializeBoard(),
   })
 
-  const { recordWin, recordLoss, recordDraw } = useGameStats()
+  const { user } = useTelegram()
+  const { recordWin, recordLoss, recordDraw } = useGameStats(user?.id)
   const statsRecordedRef = useRef(false)
 
   useEffect(() => {

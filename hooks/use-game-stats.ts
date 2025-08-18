@@ -20,12 +20,13 @@ const defaultStats: GameStats = {
   currentStreak: 0,
 }
 
-export function useGameStats() {
+export function useGameStats(userId?: number) {
+  const storageKey = userId ? `starcheckers-stats-${userId}` : "starcheckers-stats"
   const [stats, setStats] = useState<GameStats>(defaultStats)
   const [isLoaded, setIsLoaded] = useState(false)
 
   useEffect(() => {
-    const savedStats = localStorage.getItem("starcheckers-stats")
+    const savedStats = localStorage.getItem(storageKey)
     if (savedStats) {
       try {
         const parsedStats = JSON.parse(savedStats)
@@ -35,11 +36,11 @@ export function useGameStats() {
       }
     }
     setIsLoaded(true)
-  }, [])
+  }, [storageKey])
 
   const saveStats = (newStats: GameStats) => {
     setStats(newStats)
-    localStorage.setItem("starcheckers-stats", JSON.stringify(newStats))
+    localStorage.setItem(storageKey, JSON.stringify(newStats))
   }
 
   const recordWin = () => {
