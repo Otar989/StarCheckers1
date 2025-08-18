@@ -23,7 +23,7 @@ interface GameBoardProps {
 export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
   const { state, dispatch } = useGame()
   const { playSound, initializeAudio } = useAudio()
-  const { hapticFeedback, webApp, user } = useTelegram()
+  const { hapticFeedback, user, initData } = useTelegram()
   const searchParams = useSearchParams()
   const [roomId, setRoomId] = useState<string | null>(null)
   const [playerColor, setPlayerColor] = useState<"white" | "black">("white")
@@ -33,8 +33,7 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
   const [isProcessingMove, setIsProcessingMove] = useState(false)
 
   useEffect(() => {
-    if (mode !== "online" || !user || !webApp || roomId) return
-    const initData = webApp.initData
+    if (mode !== "online" || !user || !initData || roomId) return
     const joinRoomId = searchParams.get("room")
     const action = joinRoomId
       ? joinGame(joinRoomId, user, initData)
@@ -45,7 +44,7 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
         if (res.color) setPlayerColor(res.color)
       })
       .catch(console.error)
-  }, [mode, user, webApp, roomId, searchParams])
+  }, [mode, user, initData, roomId, searchParams])
 
   useEffect(() => {
     if (
