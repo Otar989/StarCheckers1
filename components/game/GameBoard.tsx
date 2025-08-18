@@ -32,7 +32,7 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
   const [isProcessingMove, setIsProcessingMove] = useState(false)
 
   useEffect(() => {
-    if (mode !== "online" || !user || !initData || roomId) return
+    if (mode !== "online" || !user || !initData || roomId || !socket.current) return
     const joinRoomId = roomCode
     const action = joinRoomId
       ? joinGame(joinRoomId, user, initData)
