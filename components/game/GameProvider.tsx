@@ -4,6 +4,7 @@ import type React from "react"
 import { createContext, useContext, useReducer, useEffect, useRef, type ReactNode } from "react"
 import { useGameStats } from "@/hooks/use-game-stats"
 import type { GameMode } from "@/app/page"
+import { GameLogic } from "@/lib/game-logic"
 
 // Game types
 export type PieceType = "regular" | "king"
@@ -26,6 +27,8 @@ export interface GameState {
   gameStatus: "playing" | "white-wins" | "black-wins" | "draw"
   moveHistory: Move[]
   gameMode: GameMode
+  roomId: string | null
+  playerColor: PieceColor | null
 }
 
 export interface Move {
@@ -53,6 +56,8 @@ const initialState: GameState = {
   gameStatus: "playing",
   moveHistory: [],
   gameMode: "bot",
+  roomId: null,
+  playerColor: null,
 }
 
 function gameReducer(state: GameState, action: GameAction): GameState {
@@ -71,6 +76,15 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       }
 
     case "MOVE_PIECE":
+      const moveResult = GameLogic.makeMove(state.board, action.from, action.to)
+      if (moveResult.success && moveResult.newState) {
+        return {
+          ...state,
+          ...moveResult.newState,
+          selectedPiece: null,
+          validMoves: [],
+        }
+      }
       return state
 
     case "RESET_GAME":
@@ -131,6 +145,7 @@ const GameContext = createContext<{
   state: GameState
   dispatch: React.Dispatch<GameAction>
   setGameMode: (mode: GameMode) => void
+  socket: React.MutableRefObject<WebSocket | null>
 } | null>(null)
 
 export function GameProvider({ children }: { children: ReactNode }) {
@@ -139,8 +154,42 @@ export function GameProvider({ children }: { children: ReactNode }) {
     board: initializeBoard(),
   })
 
+  const socketRef = useRef<WebSocket | null>(null)
+
   const { recordWin, recordLoss, recordDraw } = useGameStats()
   const statsRecordedRef = useRef(false)
+
+  useEffect(() => {
+    if (state.gameMode !== "online") {
+      socketRef.current?.close()
+      socketRef.current = null
+      return
+    }
+
+    const socket = new WebSocket(process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:3001")
+    socketRef.current = socket
+
+    socket.addEventListener("message", (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        if (data.type === "init") {
+          dispatch({
+            type: "SET_GAME_STATE",
+            state: { roomId: data.roomId, playerColor: data.player },
+          })
+        } else if (data.type === "move" || data.type === "opponentMove") {
+          dispatch({ type: "MOVE_PIECE", from: data.from, to: data.to })
+        }
+      } catch {
+        // ignore malformed messages
+      }
+    })
+
+    return () => {
+      socket.close()
+      socketRef.current = null
+    }
+  }, [state.gameMode, dispatch])
 
   useEffect(() => {
     if (state.gameStatus === "playing") {
@@ -174,7 +223,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
     dispatch({ type: "SET_GAME_STATE", state: { gameMode: mode } })
   }
 
-  return <GameContext.Provider value={{ state, dispatch, setGameMode }}>{children}</GameContext.Provider>
+  return (
+    <GameContext.Provider value={{ state, dispatch, setGameMode, socket: socketRef }}>
+      {children}
+    </GameContext.Provider>
+  )
 }
 
 export function useGame() {
