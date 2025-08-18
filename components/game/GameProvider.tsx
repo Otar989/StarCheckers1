@@ -178,40 +178,45 @@ export function GameProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    const socket = io(process.env.NEXT_PUBLIC_WS_URL || "http://localhost:3001")
-    socketRef.current = socket
+    const initSocket = async () => {
+      await fetch("/api/socket")
+      const socket = io()
+      socketRef.current = socket
 
-    socket.on("gameCreated", (data: { roomId: string; player: PieceColor }) => {
-      dispatch({
-        type: "SET_GAME_STATE",
-        state: { roomId: data.roomId, playerColor: data.player },
+      socket.on("gameCreated", (data: { roomId: string; player: PieceColor }) => {
+        dispatch({
+          type: "SET_GAME_STATE",
+          state: { roomId: data.roomId, playerColor: data.player },
+        })
       })
-    })
 
-    socket.on("playerJoined", (data: { player: PieceColor }) => {
-      dispatch({
-        type: "SET_GAME_STATE",
-        state: { opponentColor: data.player },
+      socket.on("playerJoined", (data: { player: PieceColor }) => {
+        dispatch({
+          type: "SET_GAME_STATE",
+          state: { opponentColor: data.player },
+        })
       })
-    })
 
-    socket.on("move", (data: { from: Position; to: Position }) => {
-      dispatch({ type: "MOVE_PIECE", from: data.from, to: data.to })
-    })
+      socket.on("move", (data: { from: Position; to: Position }) => {
+        dispatch({ type: "MOVE_PIECE", from: data.from, to: data.to })
+      })
 
-    socket.on("gameOver", (data: { winner: PieceColor | "draw" }) => {
-      let gameStatus: GameState["gameStatus"] = "draw"
-      if (data.winner === "white") gameStatus = "white-wins"
-      else if (data.winner === "black") gameStatus = "black-wins"
-      dispatch({ type: "SET_GAME_STATE", state: { gameStatus } })
-    })
+      socket.on("gameOver", (data: { winner: PieceColor | "draw" }) => {
+        let gameStatus: GameState["gameStatus"] = "draw"
+        if (data.winner === "white") gameStatus = "white-wins"
+        else if (data.winner === "black") gameStatus = "black-wins"
+        dispatch({ type: "SET_GAME_STATE", state: { gameStatus } })
+      })
+    }
+
+    initSocket()
 
     return () => {
-      socket.off("gameCreated")
-      socket.off("playerJoined")
-      socket.off("move")
-      socket.off("gameOver")
-      socket.disconnect()
+      socketRef.current?.off("gameCreated")
+      socketRef.current?.off("playerJoined")
+      socketRef.current?.off("move")
+      socketRef.current?.off("gameOver")
+      socketRef.current?.disconnect()
       socketRef.current = null
     }
   }, [state.gameMode, dispatch])
