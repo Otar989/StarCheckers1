@@ -61,6 +61,7 @@ interface TelegramWebApp {
 interface TelegramContextType {
   webApp: TelegramWebApp | null
   user: TelegramUser | null
+  initData: string | null
   isTelegramWebApp: boolean
   isReady: boolean
   colorScheme: "light" | "dark"
@@ -82,6 +83,7 @@ declare global {
 export function TelegramProvider({ children }: { children: ReactNode }) {
   const [webApp, setWebApp] = useState<TelegramWebApp | null>(null)
   const [user, setUser] = useState<TelegramUser | null>(null)
+  const [initData, setInitData] = useState<string | null>(null)
   const [isTelegramWebApp, setIsTelegramWebApp] = useState(false)
   const [isReady, setIsReady] = useState(false)
   const [colorScheme, setColorScheme] = useState<"light" | "dark">("light")
@@ -92,6 +94,7 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
       setWebApp(tgWebApp)
       setIsTelegramWebApp(true)
       setUser(tgWebApp.initDataUnsafe.user || null)
+      setInitData(tgWebApp.initData)
       setColorScheme(tgWebApp.colorScheme)
 
       // Initialize Telegram WebApp
@@ -153,6 +156,7 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
       value={{
         webApp,
         user,
+        initData,
         isTelegramWebApp,
         isReady,
         colorScheme,

@@ -3,6 +3,7 @@
 import type React from "react"
 import { createContext, useContext, useReducer, useEffect, useRef, type ReactNode } from "react"
 import { useGameStats } from "@/hooks/use-game-stats"
+import { useTelegram } from "../telegram/TelegramProvider"
 import type { GameMode } from "@/app/page"
 import { GameLogic } from "@/lib/game-logic"
 
@@ -75,7 +76,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         validMoves: action.moves,
       }
 
-    case "MOVE_PIECE":
+    case "MOVE_PIECE": {
       const moveResult = GameLogic.makeMove(state.board, action.from, action.to)
       if (moveResult.success && moveResult.newState) {
         return {
@@ -86,6 +87,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         }
       }
       return state
+    }
 
     case "RESET_GAME":
       return {
@@ -95,10 +97,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       }
 
     case "SET_GAME_STATE":
-      return {
-        ...state,
-        ...action.state,
-      }
+      return { ...state, ...action.state }
 
     default:
       return state
@@ -154,15 +153,19 @@ export function GameProvider({ children }: { children: ReactNode }) {
     board: initializeBoard(),
   })
 
+  // --- объединённая часть из обеих веток ---
   const socketRef = useRef<WebSocket | null>(null)
-  const { 
-    recordWin, 
-    recordLoss, 
-    recordDraw, 
-    recordOnlineWin, 
-    recordOnlineLoss, 
-    recordOnlineDraw 
-  } = useGameStats()
+  const { user } = useTelegram()
+  const {
+    recordWin,
+    recordLoss,
+    recordDraw,
+    recordOnlineWin,
+    recordOnlineLoss,
+    recordOnlineDraw,
+  } = useGameStats(user?.id)
+  // -----------------------------------------
+
   const statsRecordedRef = useRef(false)
 
   useEffect(() => {
@@ -228,7 +231,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
           statsRecordedRef.current = true
         }
       }
-      // В локальном режиме статистика не ведется (играют два человека)
+      // в локальном режиме статистика не ведётся
     }
   }, [
     state.gameStatus,

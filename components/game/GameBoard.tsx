@@ -4,6 +4,8 @@ import { ArrowLeft, RotateCcw } from "lucide-react"
 import { useGame } from "./GameProvider"
 import { useAudio } from "./AudioProvider"
 import { useTelegram } from "../telegram/TelegramProvider"
+import { createGame, joinGame } from "@/lib/api"
+import { useSearchParams } from "next/navigation"
 import { useTheme } from "@/hooks/use-theme"
 import { BoardSquare } from "./BoardSquare"
 import { GameLogic } from "@/lib/game-logic"
@@ -21,11 +23,28 @@ interface GameBoardProps {
 export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
   const { state, dispatch, socket } = useGame()
   const { playSound, initializeAudio } = useAudio()
-  const { hapticFeedback } = useTelegram()
+  const { hapticFeedback, user, initData } = useTelegram()
+  const searchParams = useSearchParams()
+  const [roomId, setRoomId] = useState<string | null>(null)
+  const [playerColor, setPlayerColor] = useState<"white" | "black">("white")
   const { theme } = useTheme()
   const [isAIThinking, setIsAIThinking] = useState(false)
   const [dragOver, setDragOver] = useState<{ row: number; col: number } | null>(null)
   const [isProcessingMove, setIsProcessingMove] = useState(false)
+
+  useEffect(() => {
+    if (mode !== "online" || !user || !initData || roomId) return
+    const joinRoomId = searchParams.get("room")
+    const action = joinRoomId
+      ? joinGame(joinRoomId, user, initData)
+      : createGame(user, initData)
+    action
+      .then((res) => {
+        setRoomId(res.roomId)
+        if (res.color) setPlayerColor(res.color)
+      })
+      .catch(console.error)
+  }, [mode, user, initData, roomId, searchParams])
 
   useEffect(() => {
     if (
