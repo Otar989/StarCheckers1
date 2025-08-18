@@ -6,6 +6,7 @@ import { useState } from "react"
 import { useAudio } from "./AudioProvider"
 import { LoadingSpinner } from "./LoadingSpinner"
 import { useGame } from "./GameProvider"
+import { RoomCodeToast } from "./RoomCodeToast"
 
 interface MainMenuProps {
   onStartGame: (mode: GameMode, difficulty?: Difficulty, roomCode?: string) => void
@@ -15,7 +16,7 @@ interface MainMenuProps {
 export function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps) {
   const { stats } = useGameStats()
   const { initializeAudio } = useAudio()
-  const { setGameMode } = useGame()
+  const { state, setGameMode } = useGame()
   const [hoveredButton, setHoveredButton] = useState<string | null>(null)
   const [onlineStep, setOnlineStep] = useState<"none" | "options" | "waiting" | "join">("none")
   const [roomCode, setRoomCode] = useState("")
@@ -29,7 +30,9 @@ export function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <>
+      {state.roomId && !state.opponentColor && <RoomCodeToast roomId={state.roomId} />}
+      <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       {/* Animated background elements */}
       <div className="absolute inset-0">
         {/* Floating orbs with different animation speeds */}
@@ -257,5 +260,6 @@ export function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps) {
         </div>
       </div>
     </div>
+  </>
   )
 }

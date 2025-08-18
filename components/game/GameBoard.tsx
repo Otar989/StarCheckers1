@@ -12,6 +12,7 @@ import { AIEngine } from "@/lib/ai-engine"
 import type { GameMode, Difficulty } from "@/app/page"
 import type { Position } from "./GameProvider"
 import { useEffect, useState } from "react"
+import { RoomCodeToast } from "./RoomCodeToast"
 
 interface GameBoardProps {
   mode: GameMode
@@ -24,23 +25,23 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
   const { state, dispatch, socket } = useGame()
   const { playSound, initializeAudio } = useAudio()
   const { hapticFeedback, user, initData } = useTelegram()
-  const [roomId, setRoomId] = useState<string | null>(null)
-  const [playerColor, setPlayerColor] = useState<"white" | "black">("white")
   const { theme } = useTheme()
   const [isAIThinking, setIsAIThinking] = useState(false)
   const [dragOver, setDragOver] = useState<{ row: number; col: number } | null>(null)
   const [isProcessingMove, setIsProcessingMove] = useState(false)
+  const [showRoomCode, setShowRoomCode] = useState(false)
 
   useEffect(() => {
-    if (mode !== "online" || !user || !initData || roomId || !socket.current) return
+    if (mode !== "online" || !user || !initData || state.roomId || !socket.current) return
     const joinRoomId = roomCode
-    const action = joinRoomId
-      ? joinGame(joinRoomId, user, initData)
-      : createGame(user, initData)
+    const action = joinRoomId ? joinGame(joinRoomId, user, initData) : createGame(user, initData)
     action
       .then((res) => {
-        setRoomId(res.roomId)
-        if (res.color) setPlayerColor(res.color)
+        dispatch({
+          type: "SET_GAME_STATE",
+          state: { roomId: res.roomId, playerColor: res.color ?? state.playerColor },
+        })
+        if (!joinRoomId) setShowRoomCode(true)
         if (socket.current) {
           if (joinRoomId) {
             socket.current.emit("joinGame", res.roomId)
@@ -50,7 +51,7 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
         }
       })
       .catch(console.error)
-  }, [mode, user, initData, roomId, roomCode, socket])
+  }, [mode, user, initData, state.roomId, roomCode, socket, dispatch, state.playerColor])
 
   useEffect(() => {
     if (
@@ -224,17 +225,21 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
   }
 
   return (
-    <div
-      className="min-h-screen flex flex-col relative overflow-hidden bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900"
-      style={{
-        paddingTop: "max(env(safe-area-inset-top), 60px)",
-        paddingBottom: "max(env(safe-area-inset-bottom), 16px)",
-        paddingLeft: "max(env(safe-area-inset-left), 12px)",
-        paddingRight: "max(env(safe-area-inset-right), 12px)",
-        minHeight: "100vh",
-        minHeight: "100dvh",
-      }}
-    >
+    <>
+      {showRoomCode && state.roomId && (
+        <RoomCodeToast roomId={state.roomId} onClose={() => setShowRoomCode(false)} />
+      )}
+      <div
+        className="min-h-screen flex flex-col relative overflow-hidden bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900"
+        style={{
+          paddingTop: "max(env(safe-area-inset-top), 60px)",
+          paddingBottom: "max(env(safe-area-inset-bottom), 16px)",
+          paddingLeft: "max(env(safe-area-inset-left), 12px)",
+          paddingRight: "max(env(safe-area-inset-right), 12px)",
+          minHeight: "100vh",
+          minHeight: "100dvh",
+        }}
+      >
       <div className="absolute inset-0">
         {/* Floating orbs with different animation speeds */}
         <div className="absolute top-20 left-10 w-32 h-32 bg-blue-500/20 rounded-full blur-xl animate-pulse" />
@@ -410,5 +415,6 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
         </div>
       </div>
     </div>
+  </>
   )
 }
