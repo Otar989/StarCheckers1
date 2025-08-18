@@ -5,6 +5,7 @@ import { useGameStats } from "@/hooks/use-game-stats"
 import { useState } from "react"
 import { useAudio } from "./AudioProvider"
 import { LoadingSpinner } from "./LoadingSpinner"
+import { useGame } from "./GameProvider"
 
 interface MainMenuProps {
   onStartGame: (mode: GameMode, difficulty?: Difficulty, roomCode?: string) => void
@@ -14,12 +15,16 @@ interface MainMenuProps {
 export function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps) {
   const { stats } = useGameStats()
   const { initializeAudio } = useAudio()
+  const { setGameMode } = useGame()
   const [hoveredButton, setHoveredButton] = useState<string | null>(null)
   const [onlineStep, setOnlineStep] = useState<"none" | "options" | "waiting" | "join">("none")
   const [roomCode, setRoomCode] = useState("")
 
   const handleStartGame = (mode: GameMode, difficulty?: Difficulty, roomCode?: string) => {
     initializeAudio()
+    if (mode === "online") {
+      setGameMode("online")
+    }
     onStartGame(mode, difficulty, roomCode)
   }
 
