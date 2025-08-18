@@ -31,6 +31,7 @@ export interface GameState {
   gameMode: GameMode
   roomId: string | null
   playerColor: PieceColor | null
+  opponentColor: PieceColor | null
 }
 
 export interface Move {
@@ -60,6 +61,7 @@ const initialState: GameState = {
   gameMode: "bot",
   roomId: null,
   playerColor: null,
+  opponentColor: null,
 }
 
 function gameReducer(state: GameState, action: GameAction): GameState {
@@ -187,7 +189,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
     })
 
     socket.on("playerJoined", (data: { player: PieceColor }) => {
-      dispatch({ type: "SET_GAME_STATE", state: { playerColor: data.player } })
+      dispatch({
+        type: "SET_GAME_STATE",
+        state: { opponentColor: data.player },
+      })
     })
 
     socket.on("move", (data: { from: Position; to: Position }) => {
