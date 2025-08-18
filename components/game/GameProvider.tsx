@@ -155,13 +155,13 @@ export function GameProvider({ children }: { children: ReactNode }) {
   })
 
   const socketRef = useRef<WebSocket | null>(null)
-  const {
-    recordWin,
-    recordLoss,
-    recordDraw,
-    recordOnlineWin,
-    recordOnlineLoss,
-    recordOnlineDraw,
+  const { 
+    recordWin, 
+    recordLoss, 
+    recordDraw, 
+    recordOnlineWin, 
+    recordOnlineLoss, 
+    recordOnlineDraw 
   } = useGameStats()
   const statsRecordedRef = useRef(false)
 
