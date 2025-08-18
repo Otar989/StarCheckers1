@@ -191,9 +191,13 @@ export function GameProvider({ children }: { children: ReactNode }) {
       })
 
       socket.on("playerJoined", (data: { player: PieceColor }) => {
+        const opponentColor =
+          data.player === state.playerColor
+            ? data.player === "white" ? "black" : "white"
+            : data.player
         dispatch({
           type: "SET_GAME_STATE",
-          state: { opponentColor: data.player },
+          state: { opponentColor },
         })
       })
 
@@ -219,7 +223,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       socketRef.current?.disconnect()
       socketRef.current = null
     }
-  }, [state.gameMode, dispatch])
+  }, [state.gameMode, state.playerColor, dispatch])
 
   useEffect(() => {
     if (state.gameStatus === "playing") {
