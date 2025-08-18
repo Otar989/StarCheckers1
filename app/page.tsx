@@ -15,10 +15,12 @@ export default function StarCheckersApp() {
   const [currentScreen, setCurrentScreen] = useState<GameScreen>("menu")
   const [gameMode, setGameMode] = useState<GameMode>("bot")
   const [difficulty, setDifficulty] = useState<Difficulty>("medium")
+  const [roomCode, setRoomCode] = useState<string | null>(null)
 
-  const startGame = (mode: GameMode, diff?: Difficulty) => {
+  const startGame = (mode: GameMode, diff?: Difficulty, code?: string) => {
     setGameMode(mode)
     if (diff) setDifficulty(diff)
+    setRoomCode(code ?? null)
     setCurrentScreen("game")
   }
 
@@ -31,7 +33,9 @@ export default function StarCheckersApp() {
         <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 dark:from-amber-950 dark:to-orange-950">
           {currentScreen === "menu" && <MainMenu onStartGame={startGame} onOpenSettings={goToSettings} />}
 
-          {currentScreen === "game" && <GameBoard mode={gameMode} difficulty={difficulty} onBackToMenu={goToMenu} />}
+          {currentScreen === "game" && (
+            <GameBoard mode={gameMode} difficulty={difficulty} roomCode={roomCode ?? undefined} onBackToMenu={goToMenu} />
+          )}
 
           {currentScreen === "settings" && <SettingsMenu onBack={goToMenu} />}
         </div>

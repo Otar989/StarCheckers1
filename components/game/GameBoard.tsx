@@ -5,7 +5,6 @@ import { useGame } from "./GameProvider"
 import { useAudio } from "./AudioProvider"
 import { useTelegram } from "../telegram/TelegramProvider"
 import { createGame, joinGame } from "@/lib/api"
-import { useSearchParams } from "next/navigation"
 import { useTheme } from "@/hooks/use-theme"
 import { BoardSquare } from "./BoardSquare"
 import { GameLogic } from "@/lib/game-logic"
@@ -17,14 +16,14 @@ import { useEffect, useState } from "react"
 interface GameBoardProps {
   mode: GameMode
   difficulty: Difficulty
+  roomCode?: string
   onBackToMenu: () => void
 }
 
-export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
+export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoardProps) {
   const { state, dispatch, socket } = useGame()
   const { playSound, initializeAudio } = useAudio()
   const { hapticFeedback, user, initData } = useTelegram()
-  const searchParams = useSearchParams()
   const [roomId, setRoomId] = useState<string | null>(null)
   const [playerColor, setPlayerColor] = useState<"white" | "black">("white")
   const { theme } = useTheme()
@@ -34,7 +33,7 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
 
   useEffect(() => {
     if (mode !== "online" || !user || !initData || roomId) return
-    const joinRoomId = searchParams.get("room")
+    const joinRoomId = roomCode
     const action = joinRoomId
       ? joinGame(joinRoomId, user, initData)
       : createGame(user, initData)
@@ -51,7 +50,7 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
         }
       })
       .catch(console.error)
-  }, [mode, user, initData, roomId, searchParams, socket])
+  }, [mode, user, initData, roomId, roomCode, socket])
 
   useEffect(() => {
     if (

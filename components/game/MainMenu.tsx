@@ -7,7 +7,7 @@ import { useAudio } from "./AudioProvider"
 import { LoadingSpinner } from "./LoadingSpinner"
 
 interface MainMenuProps {
-  onStartGame: (mode: GameMode, difficulty?: Difficulty) => void
+  onStartGame: (mode: GameMode, difficulty?: Difficulty, roomCode?: string) => void
   onOpenSettings: () => void
 }
 
@@ -18,9 +18,9 @@ export function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps) {
   const [onlineStep, setOnlineStep] = useState<"none" | "options" | "waiting" | "join">("none")
   const [roomCode, setRoomCode] = useState("")
 
-  const handleStartGame = (mode: GameMode, difficulty?: Difficulty) => {
+  const handleStartGame = (mode: GameMode, difficulty?: Difficulty, roomCode?: string) => {
     initializeAudio()
-    onStartGame(mode, difficulty)
+    onStartGame(mode, difficulty, roomCode)
   }
 
   return (
@@ -215,7 +215,7 @@ export function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps) {
                       />
                       <div className="flex gap-2">
                         <button
-                          onClick={() => handleStartGame("online")}
+                          onClick={() => handleStartGame("online", undefined, roomCode)}
                           className="flex-1 h-10 rounded-2xl bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-white/20 text-white hover:scale-105 transition-all"
                         >
                           Присоединиться
