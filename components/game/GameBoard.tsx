@@ -19,7 +19,7 @@ interface GameBoardProps {
 }
 
 export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
-  const { state, dispatch } = useGame()
+  const { state, dispatch, socket } = useGame()
   const { playSound, initializeAudio } = useAudio()
   const { hapticFeedback } = useTelegram()
   const { theme } = useTheme()
@@ -78,7 +78,12 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
   ])
 
   const handleSquareClick = (row: number, col: number) => {
-    if (isAIThinking || isProcessingMove || (mode === "bot" && state.currentPlayer === "black")) {
+    if (
+      isAIThinking ||
+      isProcessingMove ||
+      (mode === "bot" && state.currentPlayer === "black") ||
+      (mode === "online" && state.playerColor && state.currentPlayer !== state.playerColor)
+    ) {
       return
     }
 
@@ -117,8 +122,8 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
 
     if (isValidMove && state.selectedPiece) {
       setIsProcessingMove(true)
-
-      const moveResult = GameLogic.makeMove(state.board, state.selectedPiece.position, position)
+      const fromPosition = state.selectedPiece.position
+      const moveResult = GameLogic.makeMove(state.board, fromPosition, position)
 
       if (moveResult.success && moveResult.newState) {
         if (moveResult.hasMoreCaptures) {
@@ -143,6 +148,17 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
         if (moveResult.newState.gameStatus !== "playing") {
           playSound("win")
           hapticFeedback("heavy")
+        }
+
+        if (mode === "online" && socket.current && state.roomId) {
+          socket.current.send(
+            JSON.stringify({
+              type: "move",
+              roomId: state.roomId,
+              from: fromPosition,
+              to: position,
+            }),
+          )
         }
       }
 
