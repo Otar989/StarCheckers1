@@ -11,7 +11,7 @@ import { GameLogic } from "@/lib/game-logic"
 import { AIEngine } from "@/lib/ai-engine"
 import type { GameMode, Difficulty } from "@/app/page"
 import type { Position } from "./GameProvider"
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, useRef } from "react"
 import { RoomCodeToast } from "./RoomCodeToast"
 
 interface GameBoardProps {
@@ -30,6 +30,7 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
   const [dragOver, setDragOver] = useState<{ row: number; col: number } | null>(null)
   const [isProcessingMove, setIsProcessingMove] = useState(false)
   const [showRoomCode, setShowRoomCode] = useState(false)
+  const cleanupRef = useRef(false)
 
   const connectOnlineGame = useCallback(() => {
     if (mode !== "online" || !user || !initData || state.roomId || !socket.current) return
@@ -60,6 +61,30 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
   },
   // eslint-disable-next-line react-hooks/exhaustive-deps
   [socket.current, connectOnlineGame])
+
+  const cleanupGame = useCallback(() => {
+    if (cleanupRef.current) return
+    cleanupRef.current = true
+
+    if (mode === "online" && socket.current && state.roomId) {
+      socket.current.emit("leave", state.roomId)
+    }
+
+    dispatch({
+      type: "RESET_GAME",
+      gameMode: mode === "online" ? "bot" : mode,
+    })
+    dispatch({
+      type: "SET_GAME_STATE",
+      state: { roomId: null, playerColor: null, opponentColor: null },
+    })
+  }, [dispatch, mode, socket, state.roomId])
+
+  useEffect(() => {
+    return () => {
+      cleanupGame()
+    }
+  }, [cleanupGame])
 
   useEffect(() => {
     if (
@@ -217,6 +242,11 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
     setDragOver(null)
   }
 
+  const handleBackToMenuClick = () => {
+    cleanupGame()
+    onBackToMenu()
+  }
+
   const resetGame = () => {
     dispatch({ type: "RESET_GAME" })
     setIsAIThinking(false)
@@ -286,7 +316,7 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
 
       <div className="flex items-center justify-between mb-2 md:mb-4 relative z-10">
         <button
-          onClick={onBackToMenu}
+          onClick={handleBackToMenuClick}
           className="liquid-glass-button flex items-center gap-2 px-3 py-2 md:px-4 md:py-2.5 rounded-2xl transition-all duration-300 hover:scale-105 text-white/90 shadow-black/20"
         >
           <ArrowLeft className="w-4 h-4" />
