@@ -11,7 +11,7 @@ import { GameLogic } from "@/lib/game-logic"
 import { AIEngine } from "@/lib/ai-engine"
 import type { GameMode, Difficulty } from "@/app/page"
 import type { Position } from "./GameProvider"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { RoomCodeToast } from "./RoomCodeToast"
 
 interface GameBoardProps {
@@ -31,7 +31,7 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
   const [isProcessingMove, setIsProcessingMove] = useState(false)
   const [showRoomCode, setShowRoomCode] = useState(false)
 
-  useEffect(() => {
+  const connectOnlineGame = useCallback(() => {
     if (mode !== "online" || !user || !initData || state.roomId || !socket.current) return
     const joinRoomId = roomCode
     const action = joinRoomId ? joinGame(joinRoomId, user, initData) : createGame(user, initData)
@@ -42,16 +42,24 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
           state: { roomId: res.roomId, playerColor: res.color ?? state.playerColor },
         })
         if (!joinRoomId) setShowRoomCode(true)
-        if (socket.current) {
-          if (joinRoomId) {
-            socket.current.emit("joinGame", res.roomId)
-          } else {
-            socket.current.emit("createGame", res.roomId)
-          }
-        }
+        socket.current?.emit(joinRoomId ? "joinGame" : "createGame", res.roomId)
       })
       .catch(console.error)
-  }, [mode, user, initData, state.roomId, roomCode, socket, dispatch, state.playerColor])
+  },
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  [mode, user, initData, state.roomId, socket.current, roomCode, dispatch, state.playerColor])
+
+  useEffect(() => {
+    connectOnlineGame()
+  },
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  [mode, user, initData, connectOnlineGame])
+
+  useEffect(() => {
+    connectOnlineGame()
+  },
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  [socket.current, connectOnlineGame])
 
   useEffect(() => {
     if (
