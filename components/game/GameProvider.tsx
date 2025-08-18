@@ -155,8 +155,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
   })
 
   const socketRef = useRef<WebSocket | null>(null)
-
-  const { recordWin, recordLoss, recordDraw } = useGameStats()
+  const {
+    recordWin,
+    recordLoss,
+    recordDraw,
+    recordOnlineWin,
+    recordOnlineLoss,
+    recordOnlineDraw,
+  } = useGameStats()
   const statsRecordedRef = useRef(false)
 
   useEffect(() => {
@@ -199,25 +205,41 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (state.gameStatus !== "playing" && !statsRecordedRef.current) {
-      // Отслеживаем статистику только в режиме против бота
       if (state.gameMode === "bot") {
         if (state.gameStatus === "white-wins") {
-          // Игрок (белые) выиграл против бота
           recordWin()
           statsRecordedRef.current = true
         } else if (state.gameStatus === "black-wins") {
-          // Бот (черные) выиграл против игрока
           recordLoss()
           statsRecordedRef.current = true
         } else if (state.gameStatus === "draw") {
           recordDraw()
           statsRecordedRef.current = true
         }
+      } else if (state.gameMode === "online") {
+        if (state.gameStatus === "white-wins") {
+          recordOnlineWin()
+          statsRecordedRef.current = true
+        } else if (state.gameStatus === "black-wins") {
+          recordOnlineLoss()
+          statsRecordedRef.current = true
+        } else if (state.gameStatus === "draw") {
+          recordOnlineDraw()
+          statsRecordedRef.current = true
+        }
       }
       // В локальном режиме статистика не ведется (играют два человека)
-      // В онлайн режиме статистика будет добавлена позже
     }
-  }, [state.gameStatus, state.gameMode, recordWin, recordLoss, recordDraw])
+  }, [
+    state.gameStatus,
+    state.gameMode,
+    recordWin,
+    recordLoss,
+    recordDraw,
+    recordOnlineWin,
+    recordOnlineLoss,
+    recordOnlineDraw,
+  ])
 
   const setGameMode = (mode: GameMode) => {
     dispatch({ type: "SET_GAME_STATE", state: { gameMode: mode } })

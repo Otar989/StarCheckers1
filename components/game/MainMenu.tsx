@@ -4,6 +4,7 @@ import type { GameMode, Difficulty } from "@/app/page"
 import { useGameStats } from "@/hooks/use-game-stats"
 import { useState } from "react"
 import { useAudio } from "./AudioProvider"
+import { LoadingSpinner } from "./LoadingSpinner"
 
 interface MainMenuProps {
   onStartGame: (mode: GameMode, difficulty?: Difficulty) => void
@@ -14,6 +15,8 @@ export function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps) {
   const { stats } = useGameStats()
   const { initializeAudio } = useAudio()
   const [hoveredButton, setHoveredButton] = useState<string | null>(null)
+  const [onlineStep, setOnlineStep] = useState<"none" | "options" | "waiting" | "join">("none")
+  const [roomCode, setRoomCode] = useState("")
 
   const handleStartGame = (mode: GameMode, difficulty?: Difficulty) => {
     initializeAudio()
@@ -146,17 +149,86 @@ export function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps) {
                     <Wifi className="w-4 h-4" />
                     Онлайн режим
                   </h3>
-                  <button
-                    onClick={() => handleStartGame("online")}
-                    disabled
-                    className="w-full flex items-center gap-3 h-12 px-4 rounded-2xl bg-white/5 border border-white/10 opacity-60 cursor-not-allowed text-white/70"
-                  >
-                    <Wifi className="w-5 h-5" />
-                    <span>Играть онлайн</span>
-                    <span className="text-xs bg-amber-400/20 px-2 py-1 rounded-full ml-auto text-amber-200 border border-amber-400/30">
-                      Скоро
-                    </span>
-                  </button>
+                  {onlineStep === "none" && (
+                    <button
+                      onClick={() => setOnlineStep("options")}
+                      onMouseEnter={() => setHoveredButton("online")}
+                      onMouseLeave={() => setHoveredButton(null)}
+                      className="w-full flex items-center gap-3 h-12 px-4 rounded-2xl bg-white/5 border border-white/10 transition-all duration-300 hover:bg-white/10 hover:scale-105 text-white/80 hover:text-white"
+                    >
+                      <Wifi className="w-5 h-5" />
+                      <span>Играть онлайн</span>
+                    </button>
+                  )}
+
+                  {onlineStep === "options" && (
+                    <div className="space-y-2">
+                      <button
+                        onClick={() => setOnlineStep("waiting")}
+                        className="w-full flex items-center justify-center gap-3 h-12 px-4 rounded-2xl bg-gradient-to-r from-emerald-500/20 to-green-500/20 border border-white/20 transition-all duration-300 hover:scale-105 hover:from-emerald-500/30 hover:to-green-500/30 text-white hover:shadow-lg"
+                      >
+                        Создать игру
+                      </button>
+                      <button
+                        onClick={() => setOnlineStep("join")}
+                        className="w-full flex items-center justify-center gap-3 h-12 px-4 rounded-2xl bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-white/20 transition-all duration-300 hover:scale-105 hover:from-blue-500/30 hover:to-purple-500/30 text-white hover:shadow-lg"
+                      >
+                        Ввести код
+                      </button>
+                      <button
+                        onClick={() => setOnlineStep("none")}
+                        className="w-full flex items-center justify-center gap-3 h-10 px-4 rounded-2xl bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 transition-all"
+                      >
+                        Назад
+                      </button>
+                    </div>
+                  )}
+
+                  {onlineStep === "waiting" && (
+                    <div className="space-y-4">
+                      <LoadingSpinner message="Ожидание второго игрока..." />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleStartGame("online")}
+                          className="flex-1 h-10 rounded-2xl bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-white/20 text-white hover:scale-105 transition-all"
+                        >
+                          Начать
+                        </button>
+                        <button
+                          onClick={() => setOnlineStep("none")}
+                          className="h-10 px-4 rounded-2xl bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 transition-all"
+                        >
+                          Отмена
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {onlineStep === "join" && (
+                    <div className="space-y-3">
+                      <input
+                        type="text"
+                        value={roomCode}
+                        onChange={(e) => setRoomCode(e.target.value)}
+                        placeholder="Код комнаты"
+                        className="w-full h-10 px-4 rounded-2xl bg-white/5 border border-white/10 text-white placeholder:text-white/50 focus:outline-none"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleStartGame("online")}
+                          className="flex-1 h-10 rounded-2xl bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-white/20 text-white hover:scale-105 transition-all"
+                        >
+                          Присоединиться
+                        </button>
+                        <button
+                          onClick={() => setOnlineStep("none")}
+                          className="h-10 px-4 rounded-2xl bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 transition-all"
+                        >
+                          Назад
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Settings button */}
