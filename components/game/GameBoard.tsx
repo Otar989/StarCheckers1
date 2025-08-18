@@ -177,7 +177,7 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
 
         if (mode === "online" && socket.current && state.roomId) {
           socket.current.emit("move", {
-            roomId: state.roomId,
+            gameId: state.roomId,
             from: fromPosition,
             to: position,
           })
