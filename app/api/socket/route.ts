@@ -2,12 +2,11 @@ import type { NextApiRequest } from "next"
 import type { NextApiResponse } from "next"
 import type { Server as HTTPServer } from "http"
 import type { Socket } from "net"
-import { randomUUID } from "crypto"
 import { Server as IOServer, type Socket as IOSocket } from "socket.io"
 import { GameLogic } from "@/lib/game-logic"
-import type { Piece, Position } from "@/components/game/GameProvider"
+import type { Position } from "@/components/game/GameProvider"
+import { getRoom, rooms } from "@/lib/room-store"
 
-// Extend Next.js response type to include Socket.io server instance
 interface SocketServer extends HTTPServer {
   io?: IOServer
 }
@@ -20,109 +19,59 @@ interface NextApiResponseServerIO extends NextApiResponse {
   socket: SocketWithIO
 }
 
-type GameStatus = "playing" | "white-wins" | "black-wins" | "draw"
-
-interface GameSession {
-  id: string
-  board: (Piece | null)[][]
-  currentPlayer: "white" | "black"
-  players: { white?: string; black?: string }
-  gameStatus: GameStatus
-}
-
-const games: Record<string, GameSession> = {}
-
-function initializeBoard(): (Piece | null)[][] {
-  const board: (Piece | null)[][] = Array(8)
-    .fill(null)
-    .map(() => Array(8).fill(null))
-
-  for (let row = 0; row < 3; row++) {
-    for (let col = 0; col < 8; col++) {
-      if ((row + col) % 2 === 1) {
-        board[row][col] = {
-          id: `black-${row}-${col}`,
-          type: "regular",
-          color: "black",
-          position: { row, col },
-        }
-      }
-    }
-  }
-
-  for (let row = 5; row < 8; row++) {
-    for (let col = 0; col < 8; col++) {
-      if ((row + col) % 2 === 1) {
-        board[row][col] = {
-          id: `white-${row}-${col}`,
-          type: "regular",
-          color: "white",
-          position: { row, col },
-        }
-      }
-    }
-  }
-
-  return board
-}
-
 function leaveGame(socket: IOSocket, gameId: string) {
-  const game = games[gameId]
+  const game = getRoom(gameId)
   if (!game) return
 
-  if (game.players.white === socket.id) game.players.white = undefined
-  if (game.players.black === socket.id) game.players.black = undefined
+  game.players.forEach((p) => {
+    if (p.socketId === socket.id) p.socketId = undefined
+  })
 
   socket.leave(gameId)
   socket.to(gameId).emit("playerLeft")
 
-  if (!game.players.white && !game.players.black) {
-    delete games[gameId]
+  if (game.players.every((p) => !p.socketId)) {
+    rooms.delete(gameId)
   }
 }
 
 function registerHandlers(io: IOServer) {
   io.on("connection", (socket) => {
-    socket.on("createGame", () => {
-      const id = randomUUID()
-      const game: GameSession = {
-        id,
-        board: initializeBoard(),
-        currentPlayer: "white",
-        players: { white: socket.id },
-        gameStatus: "playing",
+    socket.on("createGame", (gameId: string) => {
+      const game = getRoom(gameId)
+      if (!game) {
+        socket.emit("error", "invalid room")
+        return
       }
-
-      games[id] = game
-      socket.join(id)
-      socket.emit("gameCreated", { gameId: id, color: "white" })
+      const player = game.players[0]
+      player.socketId = socket.id
+      socket.join(gameId)
+      socket.emit("gameCreated", { roomId: gameId, player: player.color })
     })
 
     socket.on("joinGame", (gameId: string) => {
-      const game = games[gameId]
-      if (!game || game.players.black) {
+      const game = getRoom(gameId)
+      if (!game) {
         socket.emit("error", "unable to join")
         return
       }
-
-      game.players.black = socket.id
+      const player = game.players.find((p) => !p.socketId)
+      if (!player) {
+        socket.emit("error", "unable to join")
+        return
+      }
+      player.socketId = socket.id
       socket.join(gameId)
-      io.to(gameId).emit("playerJoined", { gameId })
+      io.to(gameId).emit("playerJoined", { player: player.color })
     })
 
     socket.on(
       "move",
       ({ gameId, from, to }: { gameId: string; from: Position; to: Position }) => {
-        const game = games[gameId]
+        const game = getRoom(gameId)
         if (!game) return
 
-        const color =
-          game.players.white === socket.id
-            ? "white"
-            : game.players.black === socket.id
-              ? "black"
-              : null
-
+        const color = game.players.find((p) => p.socketId === socket.id)?.color
         if (!color) return
         if (game.currentPlayer !== color) return
         if (game.gameStatus !== "playing") return
@@ -143,7 +92,13 @@ function registerHandlers(io: IOServer) {
         })
 
         if (game.gameStatus !== "playing") {
-          io.to(gameId).emit("gameOver", { status: game.gameStatus })
+          const winner =
+            game.gameStatus === "white-wins"
+              ? "white"
+              : game.gameStatus === "black-wins"
+                ? "black"
+                : "draw"
+          io.to(gameId).emit("gameOver", { winner })
         }
       },
     )
@@ -153,12 +108,11 @@ function registerHandlers(io: IOServer) {
     })
 
     socket.on("disconnect", () => {
-      Object.keys(games).forEach((id) => {
-        const g = games[id]
-        if (g.players.white === socket.id || g.players.black === socket.id) {
+      for (const [id, g] of rooms) {
+        if (g.players.some((p) => p.socketId === socket.id)) {
           leaveGame(socket, id)
         }
-      })
+      }
     })
   })
 }
@@ -177,4 +131,3 @@ export default function handler(req: NextApiRequest, res: NextApiResponseServerI
   }
   res.end()
 }
-
