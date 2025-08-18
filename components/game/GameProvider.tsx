@@ -170,6 +170,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   // -----------------------------------------
 
   const statsRecordedRef = useRef(false)
+  const playerColorRef = useRef<PieceColor | null>(null)
 
   useEffect(() => {
     if (state.gameMode !== "online") {
@@ -192,7 +193,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
       socket.on("playerJoined", (data: { player: PieceColor }) => {
         const opponentColor =
-          data.player === state.playerColor
+          data.player === playerColorRef.current
             ? data.player === "white" ? "black" : "white"
             : data.player
         dispatch({
@@ -223,7 +224,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
       socketRef.current?.disconnect()
       socketRef.current = null
     }
-  }, [state.gameMode, state.playerColor, dispatch])
+  }, [state.gameMode, dispatch])
+
+  useEffect(() => {
+    playerColorRef.current = state.playerColor
+  }, [state.playerColor])
 
   useEffect(() => {
     if (state.gameStatus === "playing") {
