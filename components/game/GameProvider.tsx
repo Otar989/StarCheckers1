@@ -2,6 +2,7 @@
 
 import type React from "react"
 import { createContext, useContext, useReducer, useEffect, useRef, type ReactNode } from "react"
+import { io, type Socket } from "socket.io-client"
 import { useGameStats } from "@/hooks/use-game-stats"
 import { useTelegram } from "../telegram/TelegramProvider"
 import type { GameMode } from "@/app/page"
@@ -144,7 +145,7 @@ const GameContext = createContext<{
   state: GameState
   dispatch: React.Dispatch<GameAction>
   setGameMode: (mode: GameMode) => void
-  socket: React.MutableRefObject<WebSocket | null>
+  socket: React.MutableRefObject<Socket | null>
 } | null>(null)
 
 export function GameProvider({ children }: { children: ReactNode }) {
@@ -154,7 +155,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   })
 
   // --- объединённая часть из обеих веток ---
-  const socketRef = useRef<WebSocket | null>(null)
+  const socketRef = useRef<Socket | null>(null)
   const { user } = useTelegram()
   const {
     recordWin,
@@ -170,32 +171,42 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (state.gameMode !== "online") {
-      socketRef.current?.close()
+      socketRef.current?.disconnect()
       socketRef.current = null
       return
     }
 
-    const socket = new WebSocket(process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:3001")
+    const socket = io(process.env.NEXT_PUBLIC_WS_URL || "http://localhost:3001")
     socketRef.current = socket
 
-    socket.addEventListener("message", (event) => {
-      try {
-        const data = JSON.parse(event.data)
-        if (data.type === "init") {
-          dispatch({
-            type: "SET_GAME_STATE",
-            state: { roomId: data.roomId, playerColor: data.player },
-          })
-        } else if (data.type === "move" || data.type === "opponentMove") {
-          dispatch({ type: "MOVE_PIECE", from: data.from, to: data.to })
-        }
-      } catch {
-        // ignore malformed messages
-      }
+    socket.on("gameCreated", (data: { roomId: string; player: PieceColor }) => {
+      dispatch({
+        type: "SET_GAME_STATE",
+        state: { roomId: data.roomId, playerColor: data.player },
+      })
+    })
+
+    socket.on("playerJoined", (data: { player: PieceColor }) => {
+      dispatch({ type: "SET_GAME_STATE", state: { playerColor: data.player } })
+    })
+
+    socket.on("move", (data: { from: Position; to: Position }) => {
+      dispatch({ type: "MOVE_PIECE", from: data.from, to: data.to })
+    })
+
+    socket.on("gameOver", (data: { winner: PieceColor | "draw" }) => {
+      let gameStatus: GameState["gameStatus"] = "draw"
+      if (data.winner === "white") gameStatus = "white-wins"
+      else if (data.winner === "black") gameStatus = "black-wins"
+      dispatch({ type: "SET_GAME_STATE", state: { gameStatus } })
     })
 
     return () => {
-      socket.close()
+      socket.off("gameCreated")
+      socket.off("playerJoined")
+      socket.off("move")
+      socket.off("gameOver")
+      socket.disconnect()
       socketRef.current = null
     }
   }, [state.gameMode, dispatch])
