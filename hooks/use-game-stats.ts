@@ -43,6 +43,18 @@ export function useGameStats(userId?: number) {
     localStorage.setItem(storageKey, JSON.stringify(newStats))
   }
 
+  const sendResultToServer = async (result: "win" | "loss" | "draw") => {
+    try {
+      await fetch("/api/history", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ result }),
+      })
+    } catch (error) {
+      console.error("Failed to send game result", error)
+    }
+  }
+
   const recordWin = () => {
     const newStats = {
       ...stats,
@@ -78,12 +90,30 @@ export function useGameStats(userId?: number) {
     saveStats(defaultStats)
   }
 
+  const recordOnlineWin = async () => {
+    recordWin()
+    await sendResultToServer("win")
+  }
+
+  const recordOnlineLoss = async () => {
+    recordLoss()
+    await sendResultToServer("loss")
+  }
+
+  const recordOnlineDraw = async () => {
+    recordDraw()
+    await sendResultToServer("draw")
+  }
+
   return {
     stats,
     isLoaded,
     recordWin,
     recordLoss,
     recordDraw,
+    recordOnlineWin,
+    recordOnlineLoss,
+    recordOnlineDraw,
     resetStats,
   }
 }

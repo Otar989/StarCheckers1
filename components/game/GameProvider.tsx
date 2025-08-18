@@ -5,6 +5,7 @@ import { createContext, useContext, useReducer, useEffect, useRef, type ReactNod
 import { useGameStats } from "@/hooks/use-game-stats"
 import { useTelegram } from "../telegram/TelegramProvider"
 import type { GameMode } from "@/app/page"
+import { GameLogic } from "@/lib/game-logic"
 
 // Game types
 export type PieceType = "regular" | "king"
@@ -27,6 +28,8 @@ export interface GameState {
   gameStatus: "playing" | "white-wins" | "black-wins" | "draw"
   moveHistory: Move[]
   gameMode: GameMode
+  roomId: string | null
+  playerColor: PieceColor | null
 }
 
 export interface Move {
@@ -54,6 +57,8 @@ const initialState: GameState = {
   gameStatus: "playing",
   moveHistory: [],
   gameMode: "bot",
+  roomId: null,
+  playerColor: null,
 }
 
 function gameReducer(state: GameState, action: GameAction): GameState {
@@ -71,8 +76,18 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         validMoves: action.moves,
       }
 
-    case "MOVE_PIECE":
+    case "MOVE_PIECE": {
+      const moveResult = GameLogic.makeMove(state.board, action.from, action.to)
+      if (moveResult.success && moveResult.newState) {
+        return {
+          ...state,
+          ...moveResult.newState,
+          selectedPiece: null,
+          validMoves: [],
+        }
+      }
       return state
+    }
 
     case "RESET_GAME":
       return {
@@ -82,10 +97,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       }
 
     case "SET_GAME_STATE":
-      return {
-        ...state,
-        ...action.state,
-      }
+      return { ...state, ...action.state }
 
     default:
       return state
@@ -132,6 +144,7 @@ const GameContext = createContext<{
   state: GameState
   dispatch: React.Dispatch<GameAction>
   setGameMode: (mode: GameMode) => void
+  socket: React.MutableRefObject<WebSocket | null>
 } | null>(null)
 
 export function GameProvider({ children }: { children: ReactNode }) {
@@ -140,9 +153,52 @@ export function GameProvider({ children }: { children: ReactNode }) {
     board: initializeBoard(),
   })
 
+  // --- объединённая часть из обеих веток ---
+  const socketRef = useRef<WebSocket | null>(null)
   const { user } = useTelegram()
-  const { recordWin, recordLoss, recordDraw } = useGameStats(user?.id)
+  const {
+    recordWin,
+    recordLoss,
+    recordDraw,
+    recordOnlineWin,
+    recordOnlineLoss,
+    recordOnlineDraw,
+  } = useGameStats(user?.id)
+  // -----------------------------------------
+
   const statsRecordedRef = useRef(false)
+
+  useEffect(() => {
+    if (state.gameMode !== "online") {
+      socketRef.current?.close()
+      socketRef.current = null
+      return
+    }
+
+    const socket = new WebSocket(process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:3001")
+    socketRef.current = socket
+
+    socket.addEventListener("message", (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        if (data.type === "init") {
+          dispatch({
+            type: "SET_GAME_STATE",
+            state: { roomId: data.roomId, playerColor: data.player },
+          })
+        } else if (data.type === "move" || data.type === "opponentMove") {
+          dispatch({ type: "MOVE_PIECE", from: data.from, to: data.to })
+        }
+      } catch {
+        // ignore malformed messages
+      }
+    })
+
+    return () => {
+      socket.close()
+      socketRef.current = null
+    }
+  }, [state.gameMode, dispatch])
 
   useEffect(() => {
     if (state.gameStatus === "playing") {
@@ -152,31 +208,51 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (state.gameStatus !== "playing" && !statsRecordedRef.current) {
-      // Отслеживаем статистику только в режиме против бота
       if (state.gameMode === "bot") {
         if (state.gameStatus === "white-wins") {
-          // Игрок (белые) выиграл против бота
           recordWin()
           statsRecordedRef.current = true
         } else if (state.gameStatus === "black-wins") {
-          // Бот (черные) выиграл против игрока
           recordLoss()
           statsRecordedRef.current = true
         } else if (state.gameStatus === "draw") {
           recordDraw()
           statsRecordedRef.current = true
         }
+      } else if (state.gameMode === "online") {
+        if (state.gameStatus === "white-wins") {
+          recordOnlineWin()
+          statsRecordedRef.current = true
+        } else if (state.gameStatus === "black-wins") {
+          recordOnlineLoss()
+          statsRecordedRef.current = true
+        } else if (state.gameStatus === "draw") {
+          recordOnlineDraw()
+          statsRecordedRef.current = true
+        }
       }
-      // В локальном режиме статистика не ведется (играют два человека)
-      // В онлайн режиме статистика будет добавлена позже
+      // в локальном режиме статистика не ведётся
     }
-  }, [state.gameStatus, state.gameMode, recordWin, recordLoss, recordDraw])
+  }, [
+    state.gameStatus,
+    state.gameMode,
+    recordWin,
+    recordLoss,
+    recordDraw,
+    recordOnlineWin,
+    recordOnlineLoss,
+    recordOnlineDraw,
+  ])
 
   const setGameMode = (mode: GameMode) => {
     dispatch({ type: "SET_GAME_STATE", state: { gameMode: mode } })
   }
 
-  return <GameContext.Provider value={{ state, dispatch, setGameMode }}>{children}</GameContext.Provider>
+  return (
+    <GameContext.Provider value={{ state, dispatch, setGameMode, socket: socketRef }}>
+      {children}
+    </GameContext.Provider>
+  )
 }
 
 export function useGame() {
