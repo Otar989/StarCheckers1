@@ -1,7 +1,15 @@
 "use client"
 
 import type React from "react"
-import { createContext, useContext, useReducer, useEffect, useRef, type ReactNode } from "react"
+import {
+  createContext,
+  useContext,
+  useReducer,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react"
 import { io, type Socket } from "socket.io-client"
 import { useGameStats } from "@/hooks/use-game-stats"
 import { useTelegram } from "../telegram/TelegramProvider"
@@ -147,7 +155,7 @@ const GameContext = createContext<{
   state: GameState
   dispatch: React.Dispatch<GameAction>
   setGameMode: (mode: GameMode) => void
-  socket: React.MutableRefObject<Socket | null>
+  socket: Socket | null
 } | null>(null)
 
 export function GameProvider({ children }: { children: ReactNode }) {
@@ -157,7 +165,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   })
 
   // --- объединённая часть из обеих веток ---
-  const socketRef = useRef<Socket | null>(null)
+  const [socket, setSocket] = useState<Socket | null>(null)
   const { user } = useTelegram()
   const {
     recordWin,
@@ -174,24 +182,28 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (state.gameMode !== "online") {
-      socketRef.current?.disconnect()
-      socketRef.current = null
+      setSocket((prev) => {
+        prev?.disconnect()
+        return null
+      })
       return
     }
 
+    let activeSocket: Socket | null = null
+
     const initSocket = async () => {
       await fetch("/api/socket")
-      const socket = io()
-      socketRef.current = socket
+      activeSocket = io()
+      setSocket(activeSocket)
 
-      socket.on("gameCreated", (data: { roomId: string; player: PieceColor }) => {
+      activeSocket.on("gameCreated", (data: { roomId: string; player: PieceColor }) => {
         dispatch({
           type: "SET_GAME_STATE",
           state: { roomId: data.roomId, playerColor: data.player },
         })
       })
 
-      socket.on("playerJoined", (data: { player: PieceColor }) => {
+      activeSocket.on("playerJoined", (data: { player: PieceColor }) => {
         const opponentColor =
           data.player === playerColorRef.current
             ? data.player === "white" ? "black" : "white"
@@ -202,11 +214,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
         })
       })
 
-      socket.on("move", (data: { from: Position; to: Position }) => {
+      activeSocket.on("move", (data: { from: Position; to: Position }) => {
         dispatch({ type: "MOVE_PIECE", from: data.from, to: data.to })
       })
 
-      socket.on("gameOver", (data: { winner: PieceColor | "draw" }) => {
+      activeSocket.on("gameOver", (data: { winner: PieceColor | "draw" }) => {
         let gameStatus: GameState["gameStatus"] = "draw"
         if (data.winner === "white") gameStatus = "white-wins"
         else if (data.winner === "black") gameStatus = "black-wins"
@@ -217,12 +229,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
     initSocket()
 
     return () => {
-      socketRef.current?.off("gameCreated")
-      socketRef.current?.off("playerJoined")
-      socketRef.current?.off("move")
-      socketRef.current?.off("gameOver")
-      socketRef.current?.disconnect()
-      socketRef.current = null
+      activeSocket?.off("gameCreated")
+      activeSocket?.off("playerJoined")
+      activeSocket?.off("move")
+      activeSocket?.off("gameOver")
+      activeSocket?.disconnect()
+      setSocket(null)
     }
   }, [state.gameMode, dispatch])
 
@@ -279,7 +291,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <GameContext.Provider value={{ state, dispatch, setGameMode, socket: socketRef }}>
+    <GameContext.Provider value={{ state, dispatch, setGameMode, socket }}>
       {children}
     </GameContext.Provider>
   )
