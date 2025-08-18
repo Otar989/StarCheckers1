@@ -42,9 +42,16 @@ export function GameBoard({ mode, difficulty, onBackToMenu }: GameBoardProps) {
       .then((res) => {
         setRoomId(res.roomId)
         if (res.color) setPlayerColor(res.color)
+        if (socket.current) {
+          if (joinRoomId) {
+            socket.current.emit("joinGame", res.roomId)
+          } else {
+            socket.current.emit("createGame", res.roomId)
+          }
+        }
       })
       .catch(console.error)
-  }, [mode, user, initData, roomId, searchParams])
+  }, [mode, user, initData, roomId, searchParams, socket])
 
   useEffect(() => {
     if (
