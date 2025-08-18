@@ -44,14 +44,14 @@ export function useGameStats(userId?: number) {
   }
 
   const sendResultToServer = async (result: "win" | "loss" | "draw") => {
-    try {
-      await fetch("/api/history", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ result }),
-      })
-    } catch (error) {
-      console.error("Failed to send game result", error)
+    const res = await fetch("/api/history", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ result }),
+    })
+
+    if (!res.ok) {
+      throw new Error("Failed to send game result")
     }
   }
 
@@ -92,17 +92,29 @@ export function useGameStats(userId?: number) {
 
   const recordOnlineWin = async () => {
     recordWin()
-    await sendResultToServer("win")
+    try {
+      await sendResultToServer("win")
+    } catch (error) {
+      console.error("Failed to record win online", error)
+    }
   }
 
   const recordOnlineLoss = async () => {
     recordLoss()
-    await sendResultToServer("loss")
+    try {
+      await sendResultToServer("loss")
+    } catch (error) {
+      console.error("Failed to record loss online", error)
+    }
   }
 
   const recordOnlineDraw = async () => {
     recordDraw()
-    await sendResultToServer("draw")
+    try {
+      await sendResultToServer("draw")
+    } catch (error) {
+      console.error("Failed to record draw online", error)
+    }
   }
 
   return {
