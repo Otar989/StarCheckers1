@@ -21,6 +21,7 @@ export function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps) {
   const [onlineStep, setOnlineStep] = useState<"none" | "options" | "waiting" | "join">("none")
   const [roomCode, setRoomCode] = useState("")
   const [showRoomCode, setShowRoomCode] = useState(false)
+  const [autoCreateTried, setAutoCreateTried] = useState(false)
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -30,12 +31,16 @@ export function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps) {
     }
   }, [joinRoom]);
 
-  // Если перешли в ожидание, но комнаты ещё нет — создаём автоматически
+  // Если перешли в ожидание, но комнаты ещё нет — один раз пытаемся создать
   useEffect(() => {
-    if (onlineStep === "waiting" && !state.roomId) {
+    if (onlineStep === "waiting" && !state.roomId && !autoCreateTried) {
+      setAutoCreateTried(true);
       createRoom();
     }
-  }, [onlineStep, state.roomId, createRoom]);
+    if (onlineStep !== "waiting" && autoCreateTried) {
+      setAutoCreateTried(false);
+    }
+  }, [onlineStep, state.roomId, autoCreateTried, createRoom]);
 
   const handleStartGame = (mode: GameMode, difficulty?: Difficulty, roomCode?: string) => {
     initializeAudio()
@@ -206,8 +211,8 @@ export function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps) {
                     <div className="space-y-2">
                       <button
                         onClick={async () => {
-                          await createRoom();
-                          setOnlineStep("waiting");
+                          const id = await createRoom();
+                          if (id) setOnlineStep("waiting");
                         }}
                         className="w-full flex items-center justify-center gap-3 h-12 px-4 rounded-2xl bg-gradient-to-r from-emerald-500/20 to-green-500/20 border border-white/20 transition-all duration-300 hover:scale-105 hover:from-emerald-500/30 hover:to-green-500/30 text-white hover:shadow-lg"
                       >
@@ -252,11 +257,14 @@ export function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps) {
                             Код комнаты появится здесь сразу после создания. Если код не появился, попробуйте создать комнату ещё раз.
                           </div>
                           <button
-                            onClick={() => createRoom()}
+                            onClick={async () => { await createRoom(); }}
                             className="w-full h-10 rounded-2xl bg-gradient-to-r from-emerald-500/20 to-green-500/20 border border-white/20 text-white hover:scale-105 transition-all"
                           >
                             Создать комнату
                           </button>
+                          {state.error && (
+                            <div className="text-red-300 text-xs">{state.error}</div>
+                          )}
                         </div>
                       )}
                       <div className="flex gap-2">

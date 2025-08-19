@@ -187,8 +187,8 @@ const GameContext = createContext<{
   state: GameState;
   dispatch: React.Dispatch<GameAction>;
   setGameMode: (mode: GameMode) => void;
-  createRoom: () => Promise<void>;
-  joinRoom: (code: string) => Promise<void>;
+  createRoom: () => Promise<string | null>;
+  joinRoom: (code: string) => Promise<boolean>;
   leaveRoom: () => Promise<void>;
   sendMove: (move: Move) => Promise<void>;
   searchRandomGame: () => Promise<void>;

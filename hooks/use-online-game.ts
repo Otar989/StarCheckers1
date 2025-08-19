@@ -208,13 +208,13 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
     }
   }, [dispatch]);
 
-  const createRoom = useCallback(async () => {
+  const createRoom = useCallback(async (): Promise<string | null> => {
     setIsLoading(true);
     try {
       const roomId = nanoid(6).toUpperCase();
       const playerColor = Math.random() < 0.5 ? 'white' : 'black';
       const initialBoard = GameLogic.getInitialBoard();
-      
+
       const { error } = await supabase.from('rooms').insert({
         id: roomId,
         status: 'waiting',
@@ -226,29 +226,31 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
 
       if (error) throw error;
 
-  dispatch({ type: 'SET_GAME_MODE', payload: 'online' });
+      dispatch({ type: 'SET_GAME_MODE', payload: 'online' });
       dispatch({ type: 'SET_ROOM_ID', payload: roomId });
       dispatch({ type: 'SET_PLAYER_COLOR', payload: playerColor });
       dispatch({ type: 'SET_LOBBY_STATUS', payload: 'waiting' });
       dispatch({ type: 'SET_ONLINE_STATE', payload: 'waiting' });
-      
+
       // Инициализируем начальное состояние
-      dispatch({ 
-        type: 'SET_GAME_STATE', 
+      dispatch({
+        type: 'SET_GAME_STATE',
         state: {
           board: initialBoard,
           currentPlayer: 'white'
         }
       });
 
+      return roomId;
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: 'Не удалось создать комнату' });
+      return null;
     } finally {
       setIsLoading(false);
     }
   }, [dispatch]);
 
-  const joinRoom = useCallback(async (roomId: string) => {
+  const joinRoom = useCallback(async (roomId: string): Promise<boolean> => {
     try {
       const { data: room, error } = await supabase
         .from('rooms')
@@ -284,16 +286,17 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
       dispatch({ type: 'SET_ONLINE_STATE', payload: 'playing' });
       
       // Устанавливаем начальное состояние
-      dispatch({ 
+  dispatch({ 
         type: 'SET_GAME_STATE', 
         state: {
           board: room.board_state,
           currentPlayer: room.turn
         }
       });
-
+  return true;
     } catch (error) {
-      dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'Не удалось присоединиться к игре' });
+  dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'Не удалось присоединиться к игре' });
+  return false;
     }
   }, [dispatch]);
 
