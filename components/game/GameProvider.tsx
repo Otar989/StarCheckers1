@@ -12,7 +12,7 @@ import {
 } from 'react';
 import { useGameStats } from '@/hooks/use-game-stats';
 import { useTelegram } from '../telegram/TelegramProvider';
-import type { GameMode } from '@/types/game';
+import type { GameMode, OnlineGameState } from '@/types/game';
 import type { PieceType, PieceColor, Position, Piece, Move, Board } from '@/types/game-types';
 import { GameLogic } from '@/lib/game-logic';
 import { useOnlineGame } from '@/hooks/use-online-game';
@@ -31,6 +31,7 @@ export interface GameState {
   playerColor: PieceColor | null;
   opponentColor: PieceColor | null;
   lobbyStatus: 'idle' | 'waiting';
+  onlineState: OnlineGameState;
   error: string | null;
 }
 
@@ -45,6 +46,7 @@ type GameAction =
   | { type: 'SET_GAME_MODE'; payload: GameMode }
   | { type: 'SET_ROOM_ID'; payload: string }
   | { type: 'SET_LOBBY_STATUS'; payload: 'idle' | 'waiting' }
+  | { type: 'SET_ONLINE_STATE'; payload: OnlineGameState }
   | { type: 'START_ONLINE_GAME' }
   | { type: 'APPLY_REMOTE_MOVE'; payload: Move }
   | { type: 'OPPONENT_LEFT' }
@@ -65,6 +67,7 @@ const initialState: GameState = {
   playerColor: null,
   opponentColor: null,
   lobbyStatus: 'idle',
+  onlineState: 'idle',
   error: null,
 };
 
@@ -99,7 +102,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     case 'RESET_GAME':
       return {
         ...initialState,
-        board: initializeBoard(),
+        board: GameLogic.getInitialBoard(),
         gameMode: action.gameMode || state.gameMode,
       };
 
@@ -115,12 +118,16 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     case 'SET_LOBBY_STATUS':
       return { ...state, lobbyStatus: action.payload };
 
+    case 'SET_ONLINE_STATE':
+      return { ...state, onlineState: action.payload };
+
     case 'START_ONLINE_GAME':
       return { 
         ...state,
         playerColor: state.playerColor || 'white',
         opponentColor: state.opponentColor || 'black',
         lobbyStatus: 'idle',
+        onlineState: 'playing'
       };
 
     case 'APPLY_REMOTE_MOVE': {
@@ -140,6 +147,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       return {
         ...state,
         gameStatus: 'player-left',
+        onlineState: 'finished'
       };
 
     case 'SET_ERROR':
@@ -156,7 +164,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       };
 
     case 'MAKE_LOCAL_MOVE': {
-      if (state.gameMode === 'online') {
+      if (state.gameMode === 'online-random' || state.gameMode === 'online-room') {
         const move = action.payload;
         const moveResult = GameLogic.makeMove(state.board, move.from, move.to);
         if (moveResult.success && moveResult.newState) {
@@ -175,42 +183,6 @@ function gameReducer(state: GameState, action: GameAction): GameState {
   }
 }
 
-function initializeBoard(): Board {
-  const board: Board = Array(8)
-    .fill(null)
-    .map(() => Array(8).fill(null));
-
-  // Place black pieces (top 3 rows)
-  for (let row = 0; row < 3; row++) {
-    for (let col = 0; col < 8; col++) {
-      if ((row + col) % 2 === 1) {
-        board[row][col] = {
-          id: `black-${row}-${col}`,
-          type: 'regular',
-          color: 'black',
-          position: { row, col },
-        };
-      }
-    }
-  }
-
-  // Place white pieces (bottom 3 rows)
-  for (let row = 5; row < 8; row++) {
-    for (let col = 0; col < 8; col++) {
-      if ((row + col) % 2 === 1) {
-        board[row][col] = {
-          id: `white-${row}-${col}`,
-          type: 'regular',
-          color: 'white',
-          position: { row, col },
-        };
-      }
-    }
-  }
-
-  return board;
-}
-
 const GameContext = createContext<{
   state: GameState;
   dispatch: React.Dispatch<GameAction>;
@@ -219,12 +191,13 @@ const GameContext = createContext<{
   joinRoom: (code: string) => Promise<void>;
   leaveRoom: () => Promise<void>;
   sendMove: (move: Move) => Promise<void>;
+  searchRandomGame: () => Promise<void>;
 } | null>(null);
 
 export function GameProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(gameReducer, {
     ...initialState,
-    board: initializeBoard(),
+    board: GameLogic.getInitialBoard(),
   });
 
   const { user } = useTelegram();
@@ -237,16 +210,17 @@ export function GameProvider({ children }: { children: ReactNode }) {
     recordOnlineDraw,
   } = useGameStats(user?.id);
 
-  const statsRecordedRef = useRef(false);
-  const playerColorRef = useRef<PieceColor | null>(null);
-  const [showRoomCode, setShowRoomCode] = useState(false);
-
   const {
     createRoom,
     joinRoom,
     leaveRoom,
     sendMove,
+    searchRandomGame
   } = useOnlineGame(dispatch, state);
+
+  const statsRecordedRef = useRef(false);
+  const playerColorRef = useRef<PieceColor | null>(null);
+  const [showRoomCode, setShowRoomCode] = useState(false);
 
   // Показываем код комнаты, когда она создана
   useEffect(() => {
@@ -259,7 +233,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   // Handle online game move sending
   useEffect(() => {
-    if (state.gameMode === 'online' && state.moveHistory.length > 0) {
+    if ((state.gameMode === 'online-random' || state.gameMode === 'online-room') && 
+        state.moveHistory.length > 0) {
       const lastMove = state.moveHistory[state.moveHistory.length - 1];
       if (state.roomId) {
         sendMove(lastMove);
@@ -277,6 +252,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     }
   }, [state.gameStatus]);
 
+  // Запись статистики
   useEffect(() => {
     if (
       state.gameStatus !== 'playing' &&
@@ -294,23 +270,26 @@ export function GameProvider({ children }: { children: ReactNode }) {
           recordDraw();
           statsRecordedRef.current = true;
         }
-      } else if (state.gameMode === 'online') {
-        if (state.gameStatus === 'white-wins') {
+      } else if (state.gameMode === 'online-random' || state.gameMode === 'online-room') {
+        const isWinner = (state.gameStatus === 'white-wins' && state.playerColor === 'white') ||
+                        (state.gameStatus === 'black-wins' && state.playerColor === 'black');
+        
+        if (isWinner) {
           recordOnlineWin();
-          statsRecordedRef.current = true;
-        } else if (state.gameStatus === 'black-wins') {
-          recordOnlineLoss();
           statsRecordedRef.current = true;
         } else if (state.gameStatus === 'draw') {
           recordOnlineDraw();
           statsRecordedRef.current = true;
+        } else {
+          recordOnlineLoss();
+          statsRecordedRef.current = true;
         }
       }
-      // в локальном режиме статистика не ведётся
     }
   }, [
     state.gameStatus,
     state.gameMode,
+    state.playerColor,
     recordWin,
     recordLoss,
     recordDraw,
@@ -320,7 +299,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   ]);
 
   const setGameMode = (mode: GameMode) => {
-    dispatch({ type: 'SET_GAME_STATE', state: { gameMode: mode } });
+    dispatch({ type: 'SET_GAME_MODE', payload: mode });
   };
 
   return (
@@ -333,6 +312,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         joinRoom,
         leaveRoom,
         sendMove,
+        searchRandomGame
       }}
     >
       {showRoomCode && state.roomId && (
