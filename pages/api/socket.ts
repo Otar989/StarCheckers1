@@ -4,7 +4,7 @@ import type { Server as HTTPServer } from "http"
 import type { Socket } from "net"
 import { Server as IOServer, type Socket as IOSocket } from "socket.io"
 import { GameLogic } from "@/lib/game-logic"
-import type { Position } from "@/components/game/GameProvider"
+import type { Position } from "@/types/game-types"
 import { getRoom, rooms } from "@/lib/room-store"
 
 interface SocketServer extends HTTPServer {
@@ -47,6 +47,14 @@ function registerHandlers(io: IOServer) {
       player.socketId = socket.id
       socket.join(gameId)
       socket.emit("gameCreated", { roomId: gameId, player: player.color })
+      
+      // Оповещаем всех игроков в комнате
+      io.to(gameId).emit("gameState", {
+        board: game.board,
+        currentPlayer: game.currentPlayer,
+        gameStatus: game.gameStatus,
+        players: game.players
+      })
     })
 
     socket.on("joinGame", (gameId: string) => {
@@ -79,26 +87,34 @@ function registerHandlers(io: IOServer) {
         const moveResult = GameLogic.makeMove(game.board, from, to)
         if (!moveResult.success || !moveResult.newState) return
 
-        game.board = moveResult.newState.board
-        game.currentPlayer = moveResult.newState.currentPlayer
-        game.gameStatus = moveResult.newState.gameStatus
+        if (moveResult.success && moveResult.newState) {
+          if (moveResult.newState.board) {
+            game.board = moveResult.newState.board;
+          }
+          if (moveResult.newState.currentPlayer) {
+            game.currentPlayer = moveResult.newState.currentPlayer;
+          }
+          if (moveResult.newState.gameStatus && ["playing", "white-wins", "black-wins", "draw"].includes(moveResult.newState.gameStatus)) {
+            game.gameStatus = moveResult.newState.gameStatus as typeof game.gameStatus;
+          }
 
-        io.to(gameId).emit("move", {
-          from,
-          to,
-          board: game.board,
-          currentPlayer: game.currentPlayer,
-          gameStatus: game.gameStatus,
-        })
+          io.to(gameId).emit("move", {
+            from,
+            to,
+            board: game.board,
+            currentPlayer: game.currentPlayer,
+            gameStatus: game.gameStatus,
+          });
 
-        if (game.gameStatus !== "playing") {
-          const winner =
-            game.gameStatus === "white-wins"
-              ? "white"
-              : game.gameStatus === "black-wins"
-                ? "black"
-                : "draw"
-          io.to(gameId).emit("gameOver", { winner })
+          if (game.gameStatus !== "playing") {
+            const winner =
+              game.gameStatus === "white-wins"
+                ? "white"
+                : game.gameStatus === "black-wins"
+                  ? "black"
+                  : "draw";
+            io.to(gameId).emit("gameOver", { winner });
+          }
         }
       },
     )

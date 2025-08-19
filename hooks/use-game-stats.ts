@@ -9,6 +9,7 @@ interface GameStats {
   draws: number
   bestStreak: number
   currentStreak: number
+  rating: number
 }
 
 const defaultStats: GameStats = {
@@ -18,6 +19,7 @@ const defaultStats: GameStats = {
   draws: 0,
   bestStreak: 0,
   currentStreak: 0,
+  rating: 1000 // Начальный рейтинг
 }
 
 export function useGameStats(userId?: number) {
@@ -28,93 +30,89 @@ export function useGameStats(userId?: number) {
   useEffect(() => {
     const savedStats = localStorage.getItem(storageKey)
     if (savedStats) {
-      try {
-        const parsedStats = JSON.parse(savedStats)
-        setStats(parsedStats)
-      } catch {
-        setStats(defaultStats)
-      }
+      setStats(JSON.parse(savedStats))
     }
     setIsLoaded(true)
   }, [storageKey])
 
-  const saveStats = (newStats: GameStats) => {
-    setStats(newStats)
-    localStorage.setItem(storageKey, JSON.stringify(newStats))
+  const updateStats = (newStats: Partial<GameStats>) => {
+    setStats(prevStats => {
+      const updatedStats = { ...prevStats, ...newStats }
+      localStorage.setItem(storageKey, JSON.stringify(updatedStats))
+      return updatedStats
+    })
   }
 
-  const sendResultToServer = async (result: "win" | "loss" | "draw") => {
-    const res = await fetch("/api/history", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ result }),
-    })
-
-    if (!res.ok) {
-      throw new Error("Failed to send game result")
+  // Функция обновления рейтинга
+  const updateRating = (won: boolean, isDraw: boolean) => {
+    const K = 32 // Коэффициент изменения рейтинга
+    let change = 0;
+    
+    if (isDraw) {
+      change = 0;
+    } else if (won) {
+      change = K;
+    } else {
+      change = -K;
     }
+
+    updateStats({ rating: Math.max(0, stats.rating + change) });
   }
 
   const recordWin = () => {
-    const newStats = {
-      ...stats,
-      gamesPlayed: stats.gamesPlayed + 1,
+    updateStats({
       wins: stats.wins + 1,
+      gamesPlayed: stats.gamesPlayed + 1,
       currentStreak: stats.currentStreak + 1,
-      bestStreak: Math.max(stats.bestStreak, stats.currentStreak + 1),
-    }
-    saveStats(newStats)
+      bestStreak: Math.max(stats.bestStreak, stats.currentStreak + 1)
+    })
+    updateRating(true, false)
   }
 
   const recordLoss = () => {
-    const newStats = {
-      ...stats,
-      gamesPlayed: stats.gamesPlayed + 1,
+    updateStats({
       losses: stats.losses + 1,
-      currentStreak: 0,
-    }
-    saveStats(newStats)
+      gamesPlayed: stats.gamesPlayed + 1,
+      currentStreak: 0
+    })
+    updateRating(false, false)
   }
 
   const recordDraw = () => {
-    const newStats = {
-      ...stats,
-      gamesPlayed: stats.gamesPlayed + 1,
+    updateStats({
       draws: stats.draws + 1,
+      gamesPlayed: stats.gamesPlayed + 1,
+    })
+    updateRating(false, true)
+  }
+
+  // Онлайн статистика с увеличенным влиянием на рейтинг
+  const recordOnlineWin = () => {
+    const K = 48 // Повышенный коэффициент для онлайн игр
+    updateStats({
+      wins: stats.wins + 1,
+      gamesPlayed: stats.gamesPlayed + 1,
+      currentStreak: stats.currentStreak + 1,
+      bestStreak: Math.max(stats.bestStreak, stats.currentStreak + 1),
+      rating: Math.max(0, stats.rating + K)
+    })
+  }
+
+  const recordOnlineLoss = () => {
+    const K = 48 // Повышенный коэффициент для онлайн игр
+    updateStats({
+      losses: stats.losses + 1,
+      gamesPlayed: stats.gamesPlayed + 1,
       currentStreak: 0,
-    }
-    saveStats(newStats)
+      rating: Math.max(0, stats.rating - K)
+    })
   }
 
-  const resetStats = () => {
-    saveStats(defaultStats)
-  }
-
-  const recordOnlineWin = async () => {
-    recordWin()
-    try {
-      await sendResultToServer("win")
-    } catch (error) {
-      console.error("Failed to record win online", error)
-    }
-  }
-
-  const recordOnlineLoss = async () => {
-    recordLoss()
-    try {
-      await sendResultToServer("loss")
-    } catch (error) {
-      console.error("Failed to record loss online", error)
-    }
-  }
-
-  const recordOnlineDraw = async () => {
-    recordDraw()
-    try {
-      await sendResultToServer("draw")
-    } catch (error) {
-      console.error("Failed to record draw online", error)
-    }
+  const recordOnlineDraw = () => {
+    updateStats({
+      draws: stats.draws + 1,
+      gamesPlayed: stats.gamesPlayed + 1,
+    })
   }
 
   return {
@@ -125,7 +123,6 @@ export function useGameStats(userId?: number) {
     recordDraw,
     recordOnlineWin,
     recordOnlineLoss,
-    recordOnlineDraw,
-    resetStats,
+    recordOnlineDraw
   }
 }
