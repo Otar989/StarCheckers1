@@ -24,7 +24,14 @@ export async function joinGame(roomId: string, user: TelegramUser, initData: str
     body: JSON.stringify({ roomId, user, initData }),
   })
   if (!res.ok) {
-    throw new Error("Failed to join game")
+    let message = "Failed to join game"
+    try {
+      const data = await res.json()
+      if (data?.error) message = data.error
+    } catch {
+      // ignore JSON parsing errors
+    }
+    throw new Error(message)
   }
   return res.json()
 }

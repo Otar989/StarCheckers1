@@ -30,6 +30,7 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
   const [dragOver, setDragOver] = useState<{ row: number; col: number } | null>(null)
   const [isProcessingMove, setIsProcessingMove] = useState(false)
   const [showRoomCode, setShowRoomCode] = useState(false)
+  const [joinError, setJoinError] = useState<string | null>(null)
   const cleanupRef = useRef(false)
 
   const connectOnlineGame = useCallback(() => {
@@ -45,7 +46,10 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
         if (!joinRoomId) setShowRoomCode(true)
         socket.emit(joinRoomId ? "joinGame" : "createGame", res.roomId)
       })
-      .catch(console.error)
+      .catch((err) => {
+        console.error(err)
+        setJoinError(err instanceof Error ? err.message : String(err))
+      })
   }, [mode, user, initData, state.roomId, socket, roomCode, dispatch, state.playerColor])
 
   useEffect(() => {
@@ -232,6 +236,11 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
     setDragOver(null)
   }
 
+  const handleJoinRetry = () => {
+    setJoinError(null)
+    connectOnlineGame()
+  }
+
   const handleBackToMenuClick = () => {
     cleanupGame()
     onBackToMenu()
@@ -254,6 +263,17 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
 
   return (
     <>
+      {joinError && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-red-500 text-white px-4 py-2 rounded shadow z-50 flex items-center gap-3">
+          <span>{joinError}</span>
+          <button onClick={handleJoinRetry} className="underline">
+            Retry
+          </button>
+          <button onClick={handleBackToMenuClick} className="underline">
+            Back
+          </button>
+        </div>
+      )}
       {showRoomCode && state.roomId && (
         <RoomCodeToast roomId={state.roomId} onClose={() => setShowRoomCode(false)} />
       )}
