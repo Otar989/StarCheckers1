@@ -159,23 +159,27 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
 
   const shareInvite = (roomId: string) => {
     const code = roomId.toUpperCase()
-    const botUsername = process.env.NEXT_PUBLIC_TG_BOT_USERNAME
+  const botUsername = process.env.NEXT_PUBLIC_TG_BOT_USERNAME
     const fallbackUrl = typeof window !== 'undefined'
       ? `${window.location.origin}/?room=${code}`
       : ""
     // Если известен username бота — формируем глубокую ссылку на мини-апп с payload
+    // Используем /play, как попросили, вместо /app
     const deepLink = botUsername
-      ? `https://t.me/${botUsername}/app?startapp=${encodeURIComponent(`room:${code}`)}`
+      ? `https://t.me/${botUsername}/play?startapp=${encodeURIComponent(`room:${code}`)}`
       : ""
     const text = encodeURIComponent(
       deepLink
         ? `Залетай в StarCheckers! Нажми ссылку, чтобы открыть мини-приложение и подключиться к комнате ${code}.`
         : `Залетай в StarCheckers! Код комнаты: ${code}. Открой мини-приложение и введи код.`
     )
+  // Внутри Telegram откроем лист "Переслать" напрямую через tg://
+  const tgMsgUrl = `tg://msg_url?url=${encodeURIComponent(deepLink || fallbackUrl)}&text=${text}`
   const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(deepLink || fallbackUrl)}&text=${text}`
     try {
       if (webApp) {
-        webApp.openTelegramLink(shareUrl)
+    // Пробуем tg-схему, если недоступна — http-ссылка тоже откроет in-app share
+    try { webApp.openTelegramLink(tgMsgUrl) } catch { webApp.openTelegramLink(shareUrl) }
       } else if ((navigator as any)?.share) {
   const payload = deepLink || fallbackUrl || `StarCheckers — код комнаты: ${code}`
   ;(navigator as any).share({ title: "StarCheckers", text: payload, url: deepLink || fallbackUrl || undefined }).catch(() => {})
