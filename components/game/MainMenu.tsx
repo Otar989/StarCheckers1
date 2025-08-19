@@ -30,6 +30,13 @@ export function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps) {
     }
   }, [joinRoom]);
 
+  // Если перешли в ожидание, но комнаты ещё нет — создаём автоматически
+  useEffect(() => {
+    if (onlineStep === "waiting" && !state.roomId) {
+      createRoom();
+    }
+  }, [onlineStep, state.roomId, createRoom]);
+
   const handleStartGame = (mode: GameMode, difficulty?: Difficulty, roomCode?: string) => {
     initializeAudio()
     if (mode === "online") {
