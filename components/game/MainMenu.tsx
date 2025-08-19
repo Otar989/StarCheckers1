@@ -2,7 +2,7 @@
 import { Settings, Bot, Users, Wifi, Trophy, Star } from "lucide-react"
 import type { GameMode, Difficulty } from "@/app/page"
 import { useGameStats } from "@/hooks/use-game-stats"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useAudio } from "./AudioProvider"
 import { LoadingSpinner } from "./LoadingSpinner"
 import { useGame } from "./GameProvider"
@@ -20,6 +20,7 @@ export function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps) {
   const [hoveredButton, setHoveredButton] = useState<string | null>(null)
   const [onlineStep, setOnlineStep] = useState<"none" | "options" | "waiting" | "join">("none")
   const [roomCode, setRoomCode] = useState("")
+  const [showRoomCode, setShowRoomCode] = useState(false)
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);

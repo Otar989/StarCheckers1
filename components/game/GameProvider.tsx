@@ -7,6 +7,7 @@ import {
   useReducer,
   useEffect,
   useRef,
+  useState,
   type ReactNode,
 } from "react"
 import { useGameStats } from "@/hooks/use-game-stats"
@@ -14,6 +15,7 @@ import { useTelegram } from "../telegram/TelegramProvider"
 import type { GameMode } from "@/app/page"
 import { GameLogic } from "@/lib/game-logic"
 import { useOnlineGame } from "@/hooks/use-online-game"
+import { RoomCodeToast } from "./RoomCodeToast"
 
 // Game types
 export type PieceType = "regular" | "king"
@@ -251,6 +253,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   const statsRecordedRef = useRef(false)
   const playerColorRef = useRef<PieceColor | null>(null)
+  const [showRoomCode, setShowRoomCode] = useState(false)
 
   const {
     createRoom,
@@ -258,6 +261,15 @@ export function GameProvider({ children }: { children: ReactNode }) {
     leaveRoom,
     sendMove
   } = useOnlineGame(dispatch, state)
+
+  // Показываем код комнаты, когда она создана
+  useEffect(() => {
+    if (state.roomId && state.lobbyStatus === 'waiting') {
+      setShowRoomCode(true)
+    } else {
+      setShowRoomCode(false)
+    }
+  }, [state.roomId, state.lobbyStatus])
 
   // Handle online game with Socket.IO
   const { createOnlineRoom, joinOnlineRoom, sendMove } = useOnlineGame(dispatch)
@@ -395,7 +407,23 @@ export function GameProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <GameContext.Provider value={{ state, dispatch, setGameMode, socket }}>
+    <GameContext.Provider 
+      value={{ 
+        state, 
+        dispatch, 
+        setGameMode, 
+        createRoom,
+        joinRoom,
+        leaveRoom,
+        sendMove
+      }}
+    >
+      {showRoomCode && state.roomId && (
+        <RoomCodeToast 
+          roomId={state.roomId}
+          onClose={() => setShowRoomCode(false)}
+        />
+      )}
       {children}
     </GameContext.Provider>
   )
