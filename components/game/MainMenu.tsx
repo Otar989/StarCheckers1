@@ -31,6 +31,13 @@ export function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps) {
     }
   }, [joinRoom]);
 
+  // Когда комната переходит в режим игры, у хоста делаем автопереход на доску
+  useEffect(() => {
+    if (state.gameMode === 'online' && state.onlineState === 'playing' && state.roomId) {
+      onStartGame('online');
+    }
+  }, [state.gameMode, state.onlineState, state.roomId, onStartGame]);
+
   // Если перешли в ожидание, но комнаты ещё нет — один раз пытаемся создать
   useEffect(() => {
     if (onlineStep === "waiting" && !state.roomId && !autoCreateTried) {
