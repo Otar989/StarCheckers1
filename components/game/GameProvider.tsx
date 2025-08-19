@@ -218,11 +218,22 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const {
     createRoom,
     joinRoom,
-    leaveRoom,
+    leaveRoom: leaveRoomInternal,
     sendMove,
   searchRandomGame,
   isLoading,
   } = useOnlineGame(dispatch, state);
+
+  // Обёртка: если игрок сам выходит из онлайн-игры — засчитываем поражение
+  const leaveRoom = async () => {
+    try {
+      if (state.gameMode === 'online' && state.roomId && state.onlineState === 'playing') {
+        recordOnlineLoss();
+        statsRecordedRef.current = true;
+      }
+    } catch {}
+    await leaveRoomInternal();
+  };
 
   // Показываем код комнаты, когда она создана
   useEffect(() => {
@@ -240,11 +251,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
     }
   }, [state.error]);
 
-  // Запись статистики
+  // Запись статистики (включая победу при выходе соперника)
   useEffect(() => {
     if (
       state.gameStatus !== 'playing' &&
-      state.gameStatus !== 'player-left' &&
       !statsRecordedRef.current
     ) {
       if (state.gameMode === 'bot') {
@@ -259,6 +269,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
           statsRecordedRef.current = true;
         }
       } else if (state.gameMode === 'online') {
+        if (state.gameStatus === 'player-left') {
+          // Соперник вышел — считаем победой
+          recordOnlineWin();
+          statsRecordedRef.current = true;
+        } else 
         if (state.gameStatus === 'white-wins') {
           recordOnlineWin();
           statsRecordedRef.current = true;

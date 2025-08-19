@@ -319,16 +319,24 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
               {state.gameStatus === 'white-wins' && 'Белые победили!'}
               {state.gameStatus === 'black-wins' && 'Чёрные победили!'}
               {state.gameStatus === 'draw' && 'Ничья'}
-              {state.gameStatus === 'player-left' && 'Соперник вышел'}
+              {state.gameStatus === 'player-left' && 'Соперник вышел из игры'}
             </h3>
-            <div className="flex gap-3 justify-center">
-              <button onClick={resetGame} className="liquid-glass-button px-4 py-2 rounded-xl">
-                Начать сначала
-              </button>
-              <button onClick={handleBackToMenuClick} className="liquid-glass-button px-4 py-2 rounded-xl">
-                Меню
-              </button>
-            </div>
+            {state.gameStatus === 'player-left' ? (
+              <div className="flex gap-3 justify-center">
+                <button onClick={handleBackToMenuClick} className="liquid-glass-button px-4 py-2 rounded-xl">
+                  Выйти в меню
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-3 justify-center">
+                <button onClick={resetGame} className="liquid-glass-button px-4 py-2 rounded-xl">
+                  Начать сначала
+                </button>
+                <button onClick={handleBackToMenuClick} className="liquid-glass-button px-4 py-2 rounded-xl">
+                  Меню
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
