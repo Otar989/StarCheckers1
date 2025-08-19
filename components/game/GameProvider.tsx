@@ -34,7 +34,7 @@ export interface GameState {
   selectedPiece: Piece | null
   validMoves: Position[]
   capturedPieces: Piece[]
-  gameStatus: "playing" | "white-wins" | "black-wins" | "draw"
+  gameStatus: "playing" | "white-wins" | "black-wins" | "draw" | "player-left"
   moveHistory: Move[]
   gameMode: GameMode
   roomId: string | null
@@ -210,7 +210,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
             : data.player
         dispatch({
           type: "SET_GAME_STATE",
-          state: { opponentColor },
+          state: { opponentColor, gameStatus: "playing" },
+        })
+      })
+
+      activeSocket.on("playerLeft", () => {
+        dispatch({
+          type: "SET_GAME_STATE",
+          state: { gameStatus: "player-left" },
         })
       })
 
@@ -249,6 +256,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return () => {
       activeSocket?.off("gameCreated")
       activeSocket?.off("playerJoined")
+      activeSocket?.off("playerLeft")
       activeSocket?.off("move")
       activeSocket?.off("gameOver")
       activeSocket?.disconnect()
@@ -267,7 +275,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
   }, [state.gameStatus])
 
   useEffect(() => {
-    if (state.gameStatus !== "playing" && !statsRecordedRef.current) {
+    if (
+      state.gameStatus !== "playing" &&
+      state.gameStatus !== "player-left" &&
+      !statsRecordedRef.current
+    ) {
       if (state.gameMode === "bot") {
         if (state.gameStatus === "white-wins") {
           recordWin()

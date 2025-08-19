@@ -31,6 +31,7 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
   const [isProcessingMove, setIsProcessingMove] = useState(false)
   const [showRoomCode, setShowRoomCode] = useState(false)
   const [joinError, setJoinError] = useState<string | null>(null)
+  const [waitingForReconnect, setWaitingForReconnect] = useState(false)
   const cleanupRef = useRef(false)
 
   const connectOnlineGame = useCallback(() => {
@@ -55,6 +56,12 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
   useEffect(() => {
     connectOnlineGame()
   }, [socket, connectOnlineGame])
+
+  useEffect(() => {
+    if (state.gameStatus !== "player-left") {
+      setWaitingForReconnect(false)
+    }
+  }, [state.gameStatus])
 
   const cleanupGame = useCallback(() => {
     if (cleanupRef.current) return
@@ -134,6 +141,7 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
     if (
       isAIThinking ||
       isProcessingMove ||
+      state.gameStatus !== "playing" ||
       (mode === "bot" && state.currentPlayer === "black") ||
       (mode === "online" && state.playerColor && state.currentPlayer !== state.playerColor)
     ) {
@@ -263,6 +271,17 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
 
   return (
     <>
+      {state.gameStatus === "player-left" && !waitingForReconnect && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-yellow-500 text-white px-4 py-2 rounded shadow z-50 flex items-center gap-3">
+          <span>Opponent disconnected</span>
+          <button onClick={() => setWaitingForReconnect(true)} className="underline">
+            Wait
+          </button>
+          <button onClick={handleBackToMenuClick} className="underline">
+            Menu
+          </button>
+        </div>
+      )}
       {joinError && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-red-500 text-white px-4 py-2 rounded shadow z-50 flex items-center gap-3">
           <span>{joinError}</span>
@@ -431,7 +450,7 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
           </p>
         </div>
 
-        {state.gameStatus !== "playing" && (
+        {state.gameStatus !== "playing" && state.gameStatus !== "player-left" && (
           <div className="liquid-glass border rounded-full px-3 py-2 md:px-4 md:py-3 animate-pulse min-h-[40px] md:min-h-[48px] flex items-center justify-center">
             <p className="font-bold text-xs md:text-sm whitespace-nowrap text-emerald-400">
               {state.gameStatus === "white-wins" && "Белые победили!"}
