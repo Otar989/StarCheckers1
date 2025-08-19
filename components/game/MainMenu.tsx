@@ -6,7 +6,6 @@ import { useState, useEffect } from "react"
 import { useAudio } from "./AudioProvider"
 import { LoadingSpinner } from "./LoadingSpinner"
 import { useGame } from "./GameProvider"
-import { RoomCodeToast } from "./RoomCodeToast"
 
 interface MainMenuProps {
   onStartGame: (mode: GameMode, difficulty?: Difficulty, roomCode?: string) => void
@@ -20,7 +19,6 @@ export function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps) {
   const [hoveredButton, setHoveredButton] = useState<string | null>(null)
   const [onlineStep, setOnlineStep] = useState<"none" | "options" | "waiting" | "join">("none")
   const [roomCode, setRoomCode] = useState("")
-  const [showRoomCode, setShowRoomCode] = useState(false)
   const [autoCreateTried, setAutoCreateTried] = useState(false)
 
   useEffect(() => {
@@ -76,7 +74,6 @@ export function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps) {
           100% { transform: translateY(0); }
         }
       `}</style>
-  {state.roomId && state.lobbyStatus === 'waiting' && <RoomCodeToast roomId={state.roomId} />}
       <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       {/* Animated background elements */}
       <div className="absolute inset-0">
@@ -279,22 +276,6 @@ export function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps) {
                           )}
                         </div>
                       )}
-                      <div className="flex gap-2">
-                        {state.roomId && (
-                          <button
-                            onClick={async () => { try { await navigator.clipboard.writeText(state.roomId!.toUpperCase()); } catch {} }}
-                            className="flex-1 h-10 rounded-2xl bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-white/20 text-white hover:scale-105 transition-all"
-                          >
-                            Скопировать код
-                          </button>
-                        )}
-                        <button
-                          onClick={() => setOnlineStep("none")}
-                          className="h-10 px-4 rounded-2xl bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 transition-all"
-                        >
-                          Отмена
-                        </button>
-                      </div>
                     </div>
                   )}
 
