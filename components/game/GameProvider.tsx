@@ -7,14 +7,13 @@ import {
   useReducer,
   useEffect,
   useRef,
-  useState,
   type ReactNode,
 } from "react"
-import { io, type Socket } from "socket.io-client"
 import { useGameStats } from "@/hooks/use-game-stats"
 import { useTelegram } from "../telegram/TelegramProvider"
 import type { GameMode } from "@/app/page"
 import { GameLogic } from "@/lib/game-logic"
+import { useOnlineGame } from "@/hooks/use-online-game"
 
 // Game types
 export type PieceType = "regular" | "king"
@@ -40,6 +39,8 @@ export interface GameState {
   roomId: string | null
   playerColor: PieceColor | null
   opponentColor: PieceColor | null
+  lobbyStatus: "idle" | "waiting"
+  error: string | null
 }
 
 export interface Move {
@@ -55,6 +56,14 @@ type GameAction =
   | { type: "SET_VALID_MOVES"; moves: Position[] }
   | { type: "RESET_GAME"; gameMode?: GameMode }
   | { type: "SET_GAME_STATE"; state: Partial<GameState> }
+  | { type: "SET_GAME_MODE"; payload: GameMode }
+  | { type: "SET_ROOM_ID"; payload: string }
+  | { type: "SET_LOBBY_STATUS"; payload: "idle" | "waiting" }
+  | { type: "START_ONLINE_GAME" }
+  | { type: "APPLY_REMOTE_MOVE"; payload: Move }
+  | { type: "OPPONENT_LEFT" }
+  | { type: "MAKE_LOCAL_MOVE"; payload: Move }
+  | { type: "SET_ERROR"; payload: string }
 
 const initialState: GameState = {
   board: Array(8)
@@ -70,6 +79,8 @@ const initialState: GameState = {
   roomId: null,
   playerColor: null,
   opponentColor: null,
+  lobbyStatus: "idle",
+  error: null
 }
 
 function gameReducer(state: GameState, action: GameAction): GameState {
@@ -109,6 +120,65 @@ function gameReducer(state: GameState, action: GameAction): GameState {
 
     case "SET_GAME_STATE":
       return { ...state, ...action.state }
+
+    case "SET_GAME_MODE":
+      return { ...state, gameMode: action.payload }
+
+    case "SET_ROOM_ID":
+      return { ...state, roomId: action.payload }
+
+    case "SET_LOBBY_STATUS":
+      return { ...state, lobbyStatus: action.payload }
+
+    case "START_ONLINE_GAME":
+      return { 
+        ...state,
+        playerColor: state.playerColor || "white",
+        opponentColor: state.opponentColor || "black",
+        lobbyStatus: "idle"
+      }
+
+    case "APPLY_REMOTE_MOVE": {
+      const move = action.payload
+      const moveResult = GameLogic.makeMove(state.board, move.from, move.to)
+      if (moveResult.success && moveResult.newState) {
+        return {
+          ...state,
+          ...moveResult.newState,
+          moveHistory: [...state.moveHistory, move]
+        }
+      }
+      return state
+    }
+
+    case "OPPONENT_LEFT":
+      return {
+        ...state,
+        gameStatus: "player-left"
+      }
+
+    case "SET_ERROR":
+      return {
+        ...state,
+        error: action.payload
+      }
+
+    case "MAKE_LOCAL_MOVE": {
+      if (state.gameMode === "online") {
+        // For online game, just apply the move locally and let the server broadcast it
+        const move = action.payload
+        const moveResult = GameLogic.makeMove(state.board, move.from, move.to)
+        if (moveResult.success && moveResult.newState) {
+          // Send move through socket will be handled in the component
+          return {
+            ...state,
+            ...moveResult.newState,
+            moveHistory: [...state.moveHistory, move]
+          }
+        }
+      }
+      return state
+    }
 
     default:
       return state
@@ -155,7 +225,10 @@ const GameContext = createContext<{
   state: GameState
   dispatch: React.Dispatch<GameAction>
   setGameMode: (mode: GameMode) => void
-  socket: Socket | null
+  createRoom: () => Promise<void>
+  joinRoom: (code: string) => Promise<void>
+  leaveRoom: () => Promise<void>
+  sendMove: (move: Move) => Promise<void>
 } | null>(null)
 
 export function GameProvider({ children }: { children: ReactNode }) {
@@ -164,8 +237,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
     board: initializeBoard(),
   })
 
-  // --- объединённая часть из обеих веток ---
-  const [socket, setSocket] = useState<Socket | null>(null)
   const { user } = useTelegram()
   const {
     recordWin,
@@ -175,28 +246,29 @@ export function GameProvider({ children }: { children: ReactNode }) {
     recordOnlineLoss,
     recordOnlineDraw,
   } = useGameStats(user?.id)
-  // -----------------------------------------
 
   const statsRecordedRef = useRef(false)
   const playerColorRef = useRef<PieceColor | null>(null)
 
+  const {
+    createRoom,
+    joinRoom,
+    leaveRoom,
+    sendMove
+  } = useOnlineGame(dispatch, state)
+
+  // Handle online game with Socket.IO
+  const { createOnlineRoom, joinOnlineRoom, sendMove } = useOnlineGame(dispatch)
+
   useEffect(() => {
-    if (state.gameMode !== "online") {
-      setSocket((prev) => {
-        prev?.disconnect()
-        return null
-      })
-      return
+    // If a move is made in online mode, send it through socket
+    if (state.gameMode === 'online' && state.moveHistory.length > 0) {
+      const lastMove = state.moveHistory[state.moveHistory.length - 1]
+      state.roomId && sendMove(state.roomId, lastMove)
     }
+  }, [state.moveHistory])
 
-    let activeSocket: Socket | null = null
-
-    const initSocket = async () => {
-      await fetch("/api/socket")
-      activeSocket = io()
-      setSocket(activeSocket)
-
-      activeSocket.on("gameCreated", (data: { roomId: string; player: PieceColor }) => {
+  useEffect(() => {
         dispatch({
           type: "SET_GAME_STATE",
           state: { roomId: data.roomId, playerColor: data.player },

@@ -1,5 +1,8 @@
 {
-  "name": "my-v0-project",
+  "name": "starcheckers1",
+  "dependencies": {
+    "socket.io-client": "^4.7.2"
+  },
   "version": "0.1.0",
   "private": true,
   "scripts": {

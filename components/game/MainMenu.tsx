@@ -16,17 +16,30 @@ interface MainMenuProps {
 export function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps) {
   const { stats } = useGameStats()
   const { initializeAudio } = useAudio()
-  const { state, setGameMode } = useGame()
+  const { state, createRoom, joinRoom } = useGame()
   const [hoveredButton, setHoveredButton] = useState<string | null>(null)
   const [onlineStep, setOnlineStep] = useState<"none" | "options" | "waiting" | "join">("none")
   const [roomCode, setRoomCode] = useState("")
 
-  const handleStartGame = (mode: GameMode, difficulty?: Difficulty, roomCode?: string) => {
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const roomId = params.get('room');
+    if (roomId) {
+      joinRoom(roomId);
+    }
+  }, []);
+
+  const handleStartGame = (mode: GameMode, difficulty?: Difficulty) => {
     initializeAudio()
     if (mode === "online") {
-      setGameMode("online")
+      if (onlineStep === "join" && roomCode) {
+        joinRoom(roomCode)
+      } else {
+        createRoom()
+      }
+    } else {
+      onStartGame(mode, difficulty)
     }
-    onStartGame(mode, difficulty, roomCode)
   }
 
   return (
