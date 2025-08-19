@@ -1,6 +1,6 @@
 "use client"
 import { Settings, Bot, Users, Wifi, Trophy, Star } from "lucide-react"
-import type { GameMode, Difficulty } from "@/app/page"
+import type { GameMode, Difficulty } from "../../types/game"
 import { useGameStats } from "@/hooks/use-game-stats"
 import { useState, useEffect } from "react"
 import { useAudio } from "./AudioProvider"
@@ -28,9 +28,9 @@ export function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps) {
     if (roomId) {
       joinRoom(roomId);
     }
-  }, []);
+  }, [joinRoom]);
 
-  const handleStartGame = (mode: GameMode, difficulty?: Difficulty) => {
+  const handleStartGame = (mode: GameMode, difficulty?: Difficulty, roomCode?: string) => {
     initializeAudio()
     if (mode === "online") {
       if (onlineStep === "join" && roomCode) {
@@ -45,6 +45,18 @@ export function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps) {
 
   return (
     <>
+      {/* Add custom keyframes for animations */}
+      <style jsx global>{`
+        @keyframes moveGradient {
+          0% { background-position: 0% 0%; }
+          100% { background-position: 100% 100%; }
+        }
+        @keyframes float {
+          0% { transform: translateY(0); }
+          50% { transform: translateY(-20px); }
+          100% { transform: translateY(0); }
+        }
+      `}</style>
       {state.roomId && !state.opponentColor && <RoomCodeToast roomId={state.roomId} />}
       <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       {/* Animated background elements */}
@@ -238,7 +250,7 @@ export function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps) {
                       />
                       <div className="flex gap-2">
                         <button
-                          onClick={() => handleStartGame("online", undefined, roomCode)}
+                          onClick={() => onStartGame("online", undefined, roomCode)}
                           className="flex-1 h-10 rounded-2xl bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-white/20 text-white hover:scale-105 transition-all"
                         >
                           Присоединиться
@@ -274,7 +286,7 @@ export function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps) {
           </div>
         </div>
       </div>
-    </div>
-  </>
+      </div>
+    </>
   )
 }

@@ -1,4 +1,5 @@
-import type { Piece, Position, GameState } from "@/components/game/GameProvider"
+import type { Piece, Position } from "@/types/game-types"
+import type { GameState } from "@/components/game/GameProvider"
 
 export class GameLogic {
   static getInitialBoard(): (Piece | null)[][] {

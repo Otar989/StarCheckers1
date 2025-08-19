@@ -1,7 +1,6 @@
-import { GameState, Move } from "@/components/game/GameProvider";
+import type { PieceColor, Board, Move } from "@/types/game-types";
 
 export type GameStatus = 'waiting' | 'playing' | 'finished';
-export type PieceColor = 'white' | 'black';
 
 export interface Database {
   public: {
@@ -11,7 +10,7 @@ export interface Database {
           id: string
           status: GameStatus
           host_color: PieceColor
-          board_state: GameState['board']
+          board_state: Board
           turn: PieceColor
           created_at: string
           updated_at: string
@@ -19,20 +18,14 @@ export interface Database {
         Insert: {
           id: string
           status?: GameStatus
-          host_color?: PieceColor
-          board_state: GameState['board']
+          host_color: PieceColor
+          board_state: Board
           turn?: PieceColor
-          created_at?: string
-          updated_at?: string
         }
         Update: {
-          id?: string
           status?: GameStatus
-          host_color?: PieceColor
-          board_state?: GameState['board']
+          board_state?: Board
           turn?: PieceColor
-          created_at?: string
-          updated_at?: string
         }
       }
       moves: {
@@ -43,16 +36,11 @@ export interface Database {
           created_at: string
         }
         Insert: {
-          id?: string
           room_id: string
           move: Move
-          created_at?: string
         }
         Update: {
-          id?: string
-          room_id?: string
           move?: Move
-          created_at?: string
         }
       }
     }

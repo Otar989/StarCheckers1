@@ -1,6 +1,7 @@
 import { useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase-client';
-import type { GameState, Move, GameDispatch } from '@/components/game/GameProvider';
+import type { Move } from '@/types/game-types';
+import type { GameState, GameDispatch } from '@/components/game/GameProvider';
 import { GameLogic } from '@/lib/game-logic';
 import { nanoid } from 'nanoid';
 
