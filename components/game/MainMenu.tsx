@@ -219,6 +219,9 @@ export function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps) {
                       >
                         {isLoading ? "Создание..." : "Создать игру"}
                       </button>
+                      {state.error && (
+                        <div className="text-red-300 text-xs px-1">{state.error}</div>
+                      )}
                       <button
                         onClick={() => setOnlineStep("join")}
                         className="w-full flex items-center justify-center gap-3 h-12 px-4 rounded-2xl bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-white/20 transition-all duration-300 hover:scale-105 hover:from-blue-500/30 hover:to-purple-500/30 text-white hover:shadow-lg"

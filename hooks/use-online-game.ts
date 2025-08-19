@@ -243,7 +243,8 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
 
       return roomId;
     } catch (error) {
-      dispatch({ type: 'SET_ERROR', payload: 'Не удалось создать комнату' });
+      const message = error instanceof Error ? error.message : 'Не удалось создать комнату';
+      dispatch({ type: 'SET_ERROR', payload: message });
       return null;
     } finally {
       setIsLoading(false);
@@ -295,7 +296,8 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
       });
   return true;
     } catch (error) {
-  dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'Не удалось присоединиться к игре' });
+      const message = error instanceof Error ? error.message : 'Не удалось присоединиться к игре';
+      dispatch({ type: 'SET_ERROR', payload: message });
   return false;
     }
   }, [dispatch]);
