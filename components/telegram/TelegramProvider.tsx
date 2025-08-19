@@ -16,6 +16,8 @@ interface TelegramWebApp {
   initDataUnsafe: {
     user?: TelegramUser
     chat_type?: string
+  // присылается при открытии через deep-link ?startapp=...
+  start_param?: string
     auth_date: number
     hash: string
   }
@@ -65,6 +67,7 @@ interface TelegramContextType {
   isTelegramWebApp: boolean
   isReady: boolean
   colorScheme: "light" | "dark"
+  startParam?: string | null
   showAlert: (message: string) => void
   showConfirm: (message: string) => Promise<boolean>
   hapticFeedback: (type: "light" | "medium" | "heavy" | "rigid" | "soft") => void
@@ -88,6 +91,7 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
   const [isTelegramWebApp, setIsTelegramWebApp] = useState(false)
   const [isReady, setIsReady] = useState(false)
   const [colorScheme, setColorScheme] = useState<"light" | "dark">("light")
+  const [startParam, setStartParam] = useState<string | null>(null)
 
   useEffect(() => {
     if (typeof window !== "undefined" && window.Telegram?.WebApp) {
@@ -96,6 +100,7 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
       setIsTelegramWebApp(true)
       setUser(tgWebApp.initDataUnsafe.user || null)
       setInitData(tgWebApp.initData)
+  setStartParam((tgWebApp.initDataUnsafe as any)?.start_param || null)
       setColorScheme(tgWebApp.colorScheme)
 
       // Initialize Telegram WebApp
@@ -154,15 +159,29 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
 
   const shareInvite = (roomId: string) => {
     const code = roomId.toUpperCase()
-    const text = encodeURIComponent(`Залетай в StarCheckers! Код комнаты: ${code}. Открой мини-приложение и введи код.`)
-    const shareUrl = `https://t.me/share/url?url=&text=${text}`
+    const botUsername = process.env.NEXT_PUBLIC_TG_BOT_USERNAME
+    const fallbackUrl = typeof window !== 'undefined'
+      ? `${window.location.origin}/?room=${code}`
+      : ""
+    // Если известен username бота — формируем глубокую ссылку на мини-апп с payload
+    const deepLink = botUsername
+      ? `https://t.me/${botUsername}/app?startapp=${encodeURIComponent(`room:${code}`)}`
+      : ""
+    const text = encodeURIComponent(
+      deepLink
+        ? `Залетай в StarCheckers! Нажми ссылку, чтобы открыть мини-приложение и подключиться к комнате ${code}.`
+        : `Залетай в StarCheckers! Код комнаты: ${code}. Открой мини-приложение и введи код.`
+    )
+  const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(deepLink || fallbackUrl)}&text=${text}`
     try {
       if (webApp) {
         webApp.openTelegramLink(shareUrl)
       } else if ((navigator as any)?.share) {
-        (navigator as any).share({ text: `StarCheckers — код комнаты: ${code}` }).catch(() => {})
+  const payload = deepLink || fallbackUrl || `StarCheckers — код комнаты: ${code}`
+  ;(navigator as any).share({ title: "StarCheckers", text: payload, url: deepLink || fallbackUrl || undefined }).catch(() => {})
       } else {
-        navigator.clipboard.writeText(`StarCheckers — код комнаты: ${code}`).then(() => {
+  const toCopy = deepLink || fallbackUrl || `StarCheckers — код комнаты: ${code}`
+        navigator.clipboard.writeText(toCopy).then(() => {
           showAlert("Текст приглашения скопирован")
         })
       }
@@ -180,6 +199,7 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
         isTelegramWebApp,
         isReady,
         colorScheme,
+  startParam,
         showAlert,
         showConfirm,
         hapticFeedback,

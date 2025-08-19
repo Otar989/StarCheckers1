@@ -17,7 +17,7 @@ export function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps) {
   const { stats } = useGameStats()
   const { initializeAudio } = useAudio()
   const { state, createRoom, joinRoom, isLoading } = useGame()
-  const { shareInvite } = useTelegram()
+  const { shareInvite, startParam, isReady } = useTelegram()
   const [hoveredButton, setHoveredButton] = useState<string | null>(null)
   const [onlineStep, setOnlineStep] = useState<"none" | "options" | "waiting" | "join">("none")
   const [roomCode, setRoomCode] = useState("")
@@ -31,6 +31,20 @@ export function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps) {
       joinRoom(roomId);
     }
   }, [joinRoom]);
+
+  // Автовход по deep-link из Telegram: start_param = "room:XXXX"
+  useEffect(() => {
+    if (!isReady) return;
+    if (startParam && startParam.startsWith('room:')) {
+      const code = startParam.split(':')[1]?.trim().toUpperCase();
+      if (code) {
+        (async () => {
+          const ok = await joinRoom(code);
+          if (ok) onStartGame('online');
+        })();
+      }
+    }
+  }, [isReady, startParam, joinRoom, onStartGame]);
 
   // Когда комната переходит в режим игры, у хоста делаем автопереход на доску
   useEffect(() => {
