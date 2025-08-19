@@ -56,8 +56,8 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
     if (cleanupRef.current) return
     cleanupRef.current = true
 
-    if (mode === "online" && socket.current && state.roomId) {
-      socket.current.emit("leave", state.roomId)
+    if (mode === "online" && socket && state.roomId) {
+      socket.emit("leave", state.roomId)
     }
 
     dispatch({
