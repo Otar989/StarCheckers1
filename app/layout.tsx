@@ -5,17 +5,16 @@ import { GeistMono } from "geist/font/mono"
 import { TelegramProvider } from "@/components/telegram/TelegramProvider"
 import "./globals.css"
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+}
+
+export const themeColor = "#000000"
+
 export const metadata: Metadata = {
   title: "StarCheckers - Премиум шашки",
   description: "Красивая игра в шашки с ИИ, локальным и онлайн режимами",
-  generator: "v0.app",
-  viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover",
-  themeColor: "#d97706",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: "StarCheckers",
-  },
 }
 
 export default function RootLayout({
