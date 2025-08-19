@@ -192,6 +192,7 @@ const GameContext = createContext<{
   leaveRoom: () => Promise<void>;
   sendMove: (move: Move) => Promise<void>;
   searchRandomGame: () => Promise<void>;
+  isLoading: boolean;
 } | null>(null);
 
 export function GameProvider({ children }: { children: ReactNode }) {
@@ -219,7 +220,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
     joinRoom,
     leaveRoom,
     sendMove,
-    searchRandomGame,
+  searchRandomGame,
+  isLoading,
   } = useOnlineGame(dispatch, state);
 
   // Показываем код комнаты, когда она создана
@@ -306,6 +308,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         leaveRoom,
         sendMove,
         searchRandomGame,
+  isLoading,
       }}
     >
       {children}
