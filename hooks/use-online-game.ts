@@ -70,37 +70,32 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
     if (!state.roomId) return;
 
     console.log('Setting up room subscription:', state.roomId);
-    const currentRoomId = state.roomId;
-    const currentPlayerColor = state.playerColor;
-    const currentOnlineState = state.onlineState;
-    const currentGameStatus = state.gameStatus;
-
-    // Subscribe to room changes
-    const roomChannel = supabase.channel(`room:${currentRoomId}`)
+  // Subscribe to room changes
+  const roomChannel = supabase.channel(`room:${state.roomId}`)
       .on('postgres_changes' as any, {
         event: '*',
         schema: 'public',
         table: 'rooms',
-        filter: `id=eq.${currentRoomId}`
+    filter: `id=eq.${state.roomId}`
       }, (payload: { new: Room }) => {
         console.log('Room update received:', payload);
-        const room = payload.new;
+  const room = payload.new;
         
         // Начало игры
-        if (room.status === 'playing' && currentOnlineState === 'waiting') {
+    if (room.status === 'playing' && state.onlineState === 'waiting') {
           console.log('Starting online game');
           dispatch({ type: 'START_ONLINE_GAME' });
         }
         
         // Выход противника
-        if (room.status === 'finished' && currentGameStatus === 'playing') {
+    if (room.status === 'finished' && state.gameStatus === 'playing') {
           console.log('Opponent left the game');
           dispatch({ type: 'OPPONENT_LEFT' });
           return;
         }
 
   // Обновляем состояние доски когда после хода соперника теперь наш ход
-        if (room.turn === currentPlayerColor) {
+    if (room.turn === state.playerColor) {
           dispatch({
             type: 'SET_GAME_STATE',
             state: {
@@ -117,12 +112,12 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
       .subscribe();
 
     // Subscribe to moves
-  const movesChannel = supabase.channel(`moves:${currentRoomId}`)
+  const movesChannel = supabase.channel(`moves:${state.roomId}`)
       .on('postgres_changes' as any, {
         event: 'INSERT',
         schema: 'public',
         table: 'moves',
-    filter: `room_id=eq.${currentRoomId}`
+    filter: `room_id=eq.${state.roomId}`
       }, (payload: { new: MovePayload }) => {
         // История ходов фиксируется, но состояние берём из обновления комнаты
         console.debug('Move inserted', payload.new);
@@ -433,8 +428,8 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
 
       if (roomError) throw roomError;
 
-  // Применяем новое состояние локально (синхронно с сервером)
-  dispatch({ type: 'SET_GAME_STATE', state: moveResult.newState });
+  // Применяем ход локально через редьюсер
+  dispatch({ type: 'MAKE_LOCAL_MOVE', payload: move });
 
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: 'Не удалось выполнить ход' });
