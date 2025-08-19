@@ -193,6 +193,12 @@ const GameContext = createContext<{
   sendMove: (move: Move) => Promise<void>;
   searchRandomGame: () => Promise<void>;
   isLoading: boolean;
+  // Rematch API
+  requestRematch?: () => Promise<void> | void;
+  cancelRematch?: () => Promise<void> | void;
+  tryStartRematch?: () => Promise<void> | void;
+  rematchDeadline?: number | null;
+  rematchRequested?: boolean;
 } | null>(null);
 
 export function GameProvider({ children }: { children: ReactNode }) {
@@ -220,8 +226,13 @@ export function GameProvider({ children }: { children: ReactNode }) {
     joinRoom,
     leaveRoom: leaveRoomInternal,
     sendMove,
-  searchRandomGame,
-  isLoading,
+    searchRandomGame,
+    isLoading,
+    requestRematch,
+    cancelRematch,
+    tryStartRematch,
+    rematchDeadline,
+    rematchRequested,
   } = useOnlineGame(dispatch, state);
 
   // Обёртка: если игрок сам выходит из онлайн-игры — засчитываем поражение
@@ -314,6 +325,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
         sendMove,
         searchRandomGame,
   isLoading,
+  // Rematch API (пробрасываем через контекст)
+  requestRematch,
+  cancelRematch,
+  tryStartRematch,
+  rematchDeadline,
+  rematchRequested,
       }}
     >
       {children}

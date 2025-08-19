@@ -21,7 +21,7 @@ interface GameBoardProps {
 }
 
 export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoardProps) {
-  const { state, dispatch, sendMove } = useGame()
+  const { state, dispatch, sendMove, requestRematch, tryStartRematch, rematchDeadline, rematchRequested } = useGame()
   const { playSound, initializeAudio } = useAudio()
   const { hapticFeedback, user, initData } = useTelegram()
   const { theme } = useTheme()
@@ -31,6 +31,24 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
   const [showRoomCode, setShowRoomCode] = useState(false)
   const [joinError, setJoinError] = useState<string | null>(null)
   const cleanupRef = useRef(false)
+  const [remaining, setRemaining] = useState<number>(60)
+
+  // Таймер для окна рематча
+  useEffect(() => {
+    if (state.gameMode !== 'online') return;
+    if (state.gameStatus === 'playing') return;
+    if (!rematchDeadline) return;
+    const tick = () => {
+      const left = Math.max(0, Math.ceil((rematchDeadline - Date.now()) / 1000))
+      setRemaining(left)
+      if (left === 0) {
+        onBackToMenu()
+      }
+    }
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [state.gameMode, state.gameStatus, rematchDeadline, onBackToMenu])
 
   // Подключение к онлайн-игре теперь полностью обрабатывается через GameProvider/use-online-game.
 
@@ -321,20 +339,25 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
               {state.gameStatus === 'draw' && 'Ничья'}
               {state.gameStatus === 'player-left' && 'Соперник вышел из игры'}
             </h3>
-            {state.gameStatus === 'player-left' ? (
-              <div className="flex gap-3 justify-center">
-                <button onClick={handleBackToMenuClick} className="liquid-glass-button px-4 py-2 rounded-xl">
-                  Выйти в меню
-                </button>
-              </div>
+            {state.gameMode === 'online' ? (
+              <>
+                <p className="text-sm text-white/70 mb-3">Начнём заново, если оба подтвердят за {remaining}s</p>
+                <div className="flex gap-3 justify-center">
+                  <button
+                    onClick={() => { requestRematch?.(); tryStartRematch?.(); }}
+                    className={`liquid-glass-button px-4 py-2 rounded-xl ${rematchRequested ? 'opacity-70' : ''}`}
+                  >
+                    {rematchRequested ? 'Ожидание соперника…' : 'Играть снова'}
+                  </button>
+                  <button onClick={handleBackToMenuClick} className="liquid-glass-button px-4 py-2 rounded-xl">
+                    Меню
+                  </button>
+                </div>
+              </>
             ) : (
               <div className="flex gap-3 justify-center">
-                <button onClick={resetGame} className="liquid-glass-button px-4 py-2 rounded-xl">
-                  Начать сначала
-                </button>
-                <button onClick={handleBackToMenuClick} className="liquid-glass-button px-4 py-2 rounded-xl">
-                  Меню
-                </button>
+                <button onClick={resetGame} className="liquid-glass-button px-4 py-2 rounded-xl">Начать сначала</button>
+                <button onClick={handleBackToMenuClick} className="liquid-glass-button px-4 py-2 rounded-xl">Меню</button>
               </div>
             )}
           </div>

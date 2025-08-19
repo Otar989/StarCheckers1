@@ -13,6 +13,9 @@ interface Room {
   host_color: 'white' | 'black';
   turn: 'white' | 'black';
   updated_at: string;
+  rematch_white?: boolean;
+  rematch_black?: boolean;
+  rematch_until?: string | null;
 }
 
 interface MovePayload {
@@ -22,6 +25,8 @@ interface MovePayload {
 
 export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
   const [isLoading, setIsLoading] = useState(false);
+  const [rematchDeadline, setRematchDeadline] = useState<number | null>(null);
+  const [rematchRequested, setRematchRequested] = useState<boolean>(false);
   const connectToRoom = useCallback(async (roomId: string) => {
     console.log('Connecting to room:', roomId);
     
@@ -75,7 +80,7 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
         filter: `id=eq.${state.roomId}`
       }, (payload: { new: Room }) => {
         console.log('Room update received:', payload);
-        const room = payload.new;
+  const room = payload.new;
         
         // Начало игры
         if (room.status === 'playing' && state.onlineState === 'waiting') {
@@ -90,7 +95,7 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
           return;
         }
 
-        // Обновляем состояние доски когда после хода соперника теперь наш ход
+  // Обновляем состояние доски когда после хода соперника теперь наш ход
         if (room.turn === state.playerColor) {
           dispatch({
             type: 'SET_GAME_STATE',
@@ -100,6 +105,10 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
             }
           });
         }
+
+  // Обновления по рематчу
+  const deadline = room.rematch_until ? new Date(room.rematch_until).getTime() : null;
+  setRematchDeadline(deadline);
       })
       .subscribe();
 
@@ -121,6 +130,64 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
       movesChannel.unsubscribe();
     };
   }, [state.roomId, state.playerColor, state.currentPlayer, state.gameStatus, state.onlineState, dispatch]);
+
+  // Запрос на переигровку от текущего игрока
+  const requestRematch = useCallback(async () => {
+    if (!state.roomId || state.gameMode !== 'online') return;
+    const until = new Date(Date.now() + 60_000).toISOString();
+    const column = state.playerColor === 'white' ? 'rematch_white' : 'rematch_black';
+    try {
+      await supabase
+        .from('rooms')
+        .update({ [column]: true, rematch_until: until })
+        .eq('id', state.roomId);
+      setRematchRequested(true);
+    } catch {}
+  }, [state.roomId, state.playerColor, state.gameMode]);
+
+  const cancelRematch = useCallback(async () => {
+    if (!state.roomId || state.gameMode !== 'online') return;
+    const column = state.playerColor === 'white' ? 'rematch_white' : 'rematch_black';
+    try {
+      await supabase
+        .from('rooms')
+        .update({ [column]: false })
+        .eq('id', state.roomId);
+      setRematchRequested(false);
+    } catch {}
+  }, [state.roomId, state.playerColor, state.gameMode]);
+
+  // Проверка обоих флажков: если оба true и дедлайн не истёк — перезапускаем партию
+  const tryStartRematch = useCallback(async () => {
+    if (!state.roomId || state.gameMode !== 'online') return;
+    try {
+      const { data: room } = await supabase
+        .from('rooms')
+        .select('*')
+        .eq('id', state.roomId)
+        .single();
+      if (!room) return;
+      const bothAgreed = room.rematch_white && room.rematch_black;
+      const notExpired = !room.rematch_until || new Date(room.rematch_until).getTime() > Date.now();
+      if (bothAgreed && notExpired) {
+        const initialBoard = GameLogic.getInitialBoard();
+        await supabase
+          .from('rooms')
+          .update({
+            status: 'playing',
+            board_state: initialBoard,
+            turn: 'white',
+            rematch_white: false,
+            rematch_black: false,
+            rematch_until: null
+          })
+          .eq('id', state.roomId);
+        dispatch({ type: 'SET_ONLINE_STATE', payload: 'playing' });
+        dispatch({ type: 'SET_GAME_MODE', payload: 'online' });
+        dispatch({ type: 'SET_GAME_STATE', state: { board: initialBoard, currentPlayer: 'white' } });
+      }
+    } catch {}
+  }, [state.roomId, state.gameMode, dispatch]);
 
   // Fallback-пуллинг: если ждём соперника, периодически проверяем статус комнаты
   useEffect(() => {
@@ -389,6 +456,12 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
     leaveRoom,
     sendMove,
   searchRandomGame,
-  isLoading
+  isLoading,
+  // Rematch API
+  requestRematch,
+  cancelRematch,
+  tryStartRematch,
+  rematchDeadline,
+  rematchRequested
   };
 }
