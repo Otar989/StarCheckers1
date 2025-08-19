@@ -4,13 +4,12 @@ import { ArrowLeft, RotateCcw } from "lucide-react"
 import { useGame } from "./GameProvider"
 import { useAudio } from "./AudioProvider"
 import { useTelegram } from "../telegram/TelegramProvider"
-import { createGame, joinGame } from "@/lib/api"
 import { useTheme } from "@/hooks/use-theme"
 import { BoardSquare } from "./BoardSquare"
 import { GameLogic } from "@/lib/game-logic"
 import { AIEngine } from "@/lib/ai-engine"
 import type { GameMode, Difficulty } from "@/app/page"
-import type { Position } from "./GameProvider"
+type Position = { row: number; col: number }
 import { useEffect, useState, useCallback, useRef } from "react"
 import { RoomCodeToast } from "./RoomCodeToast"
 
@@ -22,7 +21,7 @@ interface GameBoardProps {
 }
 
 export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoardProps) {
-  const { state, dispatch, socket } = useGame()
+  const { state, dispatch } = useGame()
   const { playSound, initializeAudio } = useAudio()
   const { hapticFeedback, user, initData } = useTelegram()
   const { theme } = useTheme()
@@ -34,28 +33,7 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
   const [waitingForReconnect, setWaitingForReconnect] = useState(false)
   const cleanupRef = useRef(false)
 
-  const connectOnlineGame = useCallback(() => {
-    if (mode !== "online" || !user || !initData || state.roomId || !socket) return
-    const joinRoomId = roomCode?.toUpperCase()
-    const action = joinRoomId ? joinGame(joinRoomId, user, initData) : createGame(user, initData)
-    action
-      .then((res) => {
-        dispatch({
-          type: "SET_GAME_STATE",
-          state: { roomId: res.roomId, playerColor: res.color ?? state.playerColor },
-        })
-        if (!joinRoomId) setShowRoomCode(true)
-        socket.emit(joinRoomId ? "joinGame" : "createGame", res.roomId)
-      })
-      .catch((err) => {
-        console.error(err)
-        setJoinError(err instanceof Error ? err.message : String(err))
-      })
-  }, [mode, user, initData, state.roomId, socket, roomCode, dispatch, state.playerColor])
-
-  useEffect(() => {
-    connectOnlineGame()
-  }, [socket, connectOnlineGame])
+  // Подключение к онлайн-игре теперь полностью обрабатывается через GameProvider/use-online-game.
 
   useEffect(() => {
     if (state.gameStatus !== "player-left") {
@@ -67,9 +45,7 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
     if (cleanupRef.current) return
     cleanupRef.current = true
 
-    if (mode === "online" && socket && state.roomId) {
-      socket.emit("leave", state.roomId)
-    }
+  // Очистку онлайна выполняет GameProvider; здесь ничего не отправляем по сокетам.
 
     dispatch({
       type: "RESET_GAME",
@@ -79,7 +55,7 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
       type: "SET_GAME_STATE",
       state: { roomId: null, playerColor: null, opponentColor: null },
     })
-  }, [dispatch, mode, socket, state.roomId])
+  }, [dispatch, mode, state.roomId])
 
   useEffect(() => {
     return () => {
@@ -199,7 +175,10 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
         hapticFeedback(moveResult.capturedPieces.length > 0 ? "medium" : "light")
 
         if (
+          moveResult.newState &&
+          moveResult.newState.board &&
           moveResult.newState.board[position.row][position.col]?.type === "king" &&
+          state.selectedPiece &&
           state.selectedPiece.type === "regular"
         ) {
           playSound("promote")
@@ -211,13 +190,7 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
           hapticFeedback("heavy")
         }
 
-        if (mode === "online" && socket && state.roomId) {
-          socket.emit("move", {
-            gameId: state.roomId,
-            from: fromPosition,
-            to: position,
-          })
-        }
+  // В онлайн-режиме отправка хода теперь делается в GameProvider через Supabase.
       }
 
       setIsProcessingMove(false)
@@ -246,7 +219,6 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
 
   const handleJoinRetry = () => {
     setJoinError(null)
-    connectOnlineGame()
   }
 
   const handleBackToMenuClick = () => {
@@ -303,7 +275,6 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
           paddingBottom: "max(env(safe-area-inset-bottom), 16px)",
           paddingLeft: "max(env(safe-area-inset-left), 12px)",
           paddingRight: "max(env(safe-area-inset-right), 12px)",
-          minHeight: "100vh",
           minHeight: "100dvh",
         }}
       >

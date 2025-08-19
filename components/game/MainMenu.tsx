@@ -303,7 +303,10 @@ export function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps) {
                       />
                       <div className="flex gap-2">
                         <button
-                          onClick={() => onStartGame("online", undefined, roomCode)}
+                          onClick={async () => {
+                            const ok = await joinRoom(roomCode);
+                            if (ok) onStartGame("online");
+                          }}
                           className="flex-1 h-10 rounded-2xl bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-white/20 text-white hover:scale-105 transition-all"
                         >
                           Присоединиться
