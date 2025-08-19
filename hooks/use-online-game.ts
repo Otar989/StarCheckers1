@@ -122,6 +122,32 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
     };
   }, [state.roomId, state.playerColor, state.currentPlayer, state.gameStatus, state.onlineState, dispatch]);
 
+  // Fallback-пуллинг: если ждём соперника, периодически проверяем статус комнаты
+  useEffect(() => {
+    if (!state.roomId || state.onlineState !== 'waiting') return;
+    let cancelled = false;
+    const interval = setInterval(async () => {
+      try {
+        const { data: room, error } = await supabase
+          .from('rooms')
+          .select('*')
+          .eq('id', state.roomId as string)
+          .single();
+        if (!cancelled && room && room.status === 'playing') {
+          dispatch({ type: 'START_ONLINE_GAME' });
+          // Подтянем состояние
+          dispatch({
+            type: 'SET_GAME_STATE',
+            state: { board: room.board_state, currentPlayer: room.turn }
+          });
+        }
+      } catch (e) {
+        // no-op
+      }
+    }, 2000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [state.roomId, state.onlineState, dispatch]);
+
   // Периодическая очистка старых комнат
   useEffect(() => {
     const cleanupInterval = setInterval(async () => {
