@@ -68,6 +68,7 @@ interface TelegramContextType {
   showAlert: (message: string) => void
   showConfirm: (message: string) => Promise<boolean>
   hapticFeedback: (type: "light" | "medium" | "heavy" | "rigid" | "soft") => void
+  shareInvite: (roomId: string) => void
 }
 
 const TelegramContext = createContext<TelegramContextType | null>(null)
@@ -151,6 +152,25 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const shareInvite = (roomId: string) => {
+    const code = roomId.toUpperCase()
+    const text = encodeURIComponent(`Залетай в StarCheckers! Код комнаты: ${code}. Открой мини-приложение и введи код.`)
+    const shareUrl = `https://t.me/share/url?url=&text=${text}`
+    try {
+      if (webApp) {
+        webApp.openTelegramLink(shareUrl)
+      } else if ((navigator as any)?.share) {
+        (navigator as any).share({ text: `StarCheckers — код комнаты: ${code}` }).catch(() => {})
+      } else {
+        navigator.clipboard.writeText(`StarCheckers — код комнаты: ${code}`).then(() => {
+          showAlert("Текст приглашения скопирован")
+        })
+      }
+    } catch {
+      // ignore
+    }
+  }
+
   return (
     <TelegramContext.Provider
       value={{
@@ -163,6 +183,7 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
         showAlert,
         showConfirm,
         hapticFeedback,
+        shareInvite,
       }}
     >
       {children}

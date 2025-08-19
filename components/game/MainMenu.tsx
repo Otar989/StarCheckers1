@@ -6,6 +6,7 @@ import { useState, useEffect } from "react"
 import { useAudio } from "./AudioProvider"
 import { LoadingSpinner } from "./LoadingSpinner"
 import { useGame } from "./GameProvider"
+import { useTelegram } from "../telegram/TelegramProvider"
 
 interface MainMenuProps {
   onStartGame: (mode: GameMode, difficulty?: Difficulty, roomCode?: string) => void
@@ -16,6 +17,7 @@ export function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps) {
   const { stats } = useGameStats()
   const { initializeAudio } = useAudio()
   const { state, createRoom, joinRoom, isLoading } = useGame()
+  const { shareInvite } = useTelegram()
   const [hoveredButton, setHoveredButton] = useState<string | null>(null)
   const [onlineStep, setOnlineStep] = useState<"none" | "options" | "waiting" | "join">("none")
   const [roomCode, setRoomCode] = useState("")
@@ -247,7 +249,7 @@ export function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps) {
                       {state.roomId ? (
                         <div className="flex items-center justify-between bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white">
                           <span className="text-xs opacity-70">Код комнаты</span>
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-2 sm:gap-3">
                             <span className="font-mono tracking-widest text-lg">{state.roomId.toUpperCase()}</span>
                             <button
                               onClick={async () => {
@@ -256,6 +258,12 @@ export function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps) {
                               className="h-8 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-xs"
                             >
                               Копировать
+                            </button>
+                            <button
+                              onClick={() => shareInvite(state.roomId!)}
+                              className="h-8 px-3 rounded-xl bg-blue-500/20 hover:bg-blue-500/30 border border-white/10 text-xs"
+                            >
+                              Поделиться
                             </button>
                           </div>
                         </div>
