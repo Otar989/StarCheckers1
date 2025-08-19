@@ -231,7 +231,7 @@ export function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps) {
                   {onlineStep === "waiting" && (
                     <div className="space-y-4">
                       <LoadingSpinner message="Ожидание второго игрока..." />
-                      {state.roomId && (
+                      {state.roomId ? (
                         <div className="flex items-center justify-between bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white">
                           <span className="text-xs opacity-70">Код комнаты</span>
                           <div className="flex items-center gap-3">
@@ -245,6 +245,18 @@ export function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps) {
                               Копировать
                             </button>
                           </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <div className="bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white/80 text-sm">
+                            Код комнаты появится здесь сразу после создания. Если код не появился, попробуйте создать комнату ещё раз.
+                          </div>
+                          <button
+                            onClick={() => createRoom()}
+                            className="w-full h-10 rounded-2xl bg-gradient-to-r from-emerald-500/20 to-green-500/20 border border-white/20 text-white hover:scale-105 transition-all"
+                          >
+                            Создать комнату
+                          </button>
                         </div>
                       )}
                       <div className="flex gap-2">
