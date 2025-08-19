@@ -33,7 +33,7 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
   const cleanupRef = useRef(false)
 
   const connectOnlineGame = useCallback(() => {
-    if (mode !== "online" || !user || !initData || state.roomId || !socket.current) return
+    if (mode !== "online" || !user || !initData || state.roomId || !socket) return
     const joinRoomId = roomCode
     const action = joinRoomId ? joinGame(joinRoomId, user, initData) : createGame(user, initData)
     action
@@ -43,24 +43,14 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
           state: { roomId: res.roomId, playerColor: res.color ?? state.playerColor },
         })
         if (!joinRoomId) setShowRoomCode(true)
-        socket.current?.emit(joinRoomId ? "joinGame" : "createGame", res.roomId)
+        socket.emit(joinRoomId ? "joinGame" : "createGame", res.roomId)
       })
       .catch(console.error)
-  },
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  [mode, user, initData, state.roomId, socket.current, roomCode, dispatch, state.playerColor])
+  }, [mode, user, initData, state.roomId, socket, roomCode, dispatch, state.playerColor])
 
   useEffect(() => {
     connectOnlineGame()
-  },
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  [mode, user, initData, connectOnlineGame])
-
-  useEffect(() => {
-    connectOnlineGame()
-  },
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  [socket.current, connectOnlineGame])
+  }, [socket, connectOnlineGame])
 
   const cleanupGame = useCallback(() => {
     if (cleanupRef.current) return
@@ -209,8 +199,8 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
           hapticFeedback("heavy")
         }
 
-        if (mode === "online" && socket.current && state.roomId) {
-          socket.current.emit("move", {
+        if (mode === "online" && socket && state.roomId) {
+          socket.emit("move", {
             gameId: state.roomId,
             from: fromPosition,
             to: position,
