@@ -28,3 +28,9 @@ Continue building your app on:
 2. Deploy your chats from the v0 interface
 3. Changes are automatically pushed to this repository
 4. Vercel deploys the latest version from this repository
+
+## Environment variables
+
+The API routes verify requests using a Telegram bot token. Set `TELEGRAM_BOT_TOKEN` in your environment (see `.env.example`).
+For local development you can use the provided token `8474498421:AAFv7W7KTiz0cWB8Stgvb3MjkppbsGG_X1E`.
+During local development the check is skipped when the variable is empty.

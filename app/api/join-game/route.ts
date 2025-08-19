@@ -6,7 +6,7 @@ const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || ""
 export async function POST(req: Request) {
   const { user, initData, roomId } = await req.json()
 
-  if (!verifyTelegramHash(initData, BOT_TOKEN)) {
+  if (BOT_TOKEN && !verifyTelegramHash(initData, BOT_TOKEN)) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 })
   }
 
