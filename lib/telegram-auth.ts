@@ -11,13 +11,8 @@ export function verifyTelegramHash(initData: string, botToken: string): boolean 
     .sort()
     .join("\n")
 
-  const secretKey = crypto
-    .createHmac("sha256", "WebAppData")
-    .update(botToken)
-    .digest()
-
   const computedHash = crypto
-    .createHmac("sha256", secretKey)
+    .createHmac("sha256", botToken)
     .update(dataCheckString)
     .digest("hex")
 
