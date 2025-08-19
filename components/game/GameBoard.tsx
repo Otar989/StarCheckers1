@@ -30,16 +30,11 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
   const [isProcessingMove, setIsProcessingMove] = useState(false)
   const [showRoomCode, setShowRoomCode] = useState(false)
   const [joinError, setJoinError] = useState<string | null>(null)
-  const [waitingForReconnect, setWaitingForReconnect] = useState(false)
   const cleanupRef = useRef(false)
 
   // Подключение к онлайн-игре теперь полностью обрабатывается через GameProvider/use-online-game.
 
-  useEffect(() => {
-    if (state.gameStatus !== "player-left") {
-      setWaitingForReconnect(false)
-    }
-  }, [state.gameStatus])
+  // Поп‑ап завершения партии отображается ниже; отдельный баннер «Opponent disconnected» удалён
 
   const cleanupGame = useCallback(() => {
     if (cleanupRef.current) return
@@ -256,17 +251,6 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
 
   return (
     <>
-      {state.gameStatus === "player-left" && !waitingForReconnect && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-yellow-500 text-white px-4 py-2 rounded shadow z-50 flex items-center gap-3">
-          <span>Opponent disconnected</span>
-          <button onClick={() => setWaitingForReconnect(true)} className="underline">
-            Wait
-          </button>
-          <button onClick={handleBackToMenuClick} className="underline">
-            Menu
-          </button>
-        </div>
-      )}
       {joinError && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-red-500 text-white px-4 py-2 rounded shadow z-50 flex items-center gap-3">
           <span>{joinError}</span>
@@ -327,6 +311,28 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
         ))}
       </div>
 
+      {/* Поп‑ап завершения партии */}
+      {state.gameStatus !== 'playing' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="liquid-glass-3d w-full max-w-sm rounded-2xl p-5 text-center">
+            <h3 className="text-lg font-bold mb-3">
+              {state.gameStatus === 'white-wins' && 'Белые победили!'}
+              {state.gameStatus === 'black-wins' && 'Чёрные победили!'}
+              {state.gameStatus === 'draw' && 'Ничья'}
+              {state.gameStatus === 'player-left' && 'Соперник вышел'}
+            </h3>
+            <div className="flex gap-3 justify-center">
+              <button onClick={resetGame} className="liquid-glass-button px-4 py-2 rounded-xl">
+                Начать сначала
+              </button>
+              <button onClick={handleBackToMenuClick} className="liquid-glass-button px-4 py-2 rounded-xl">
+                Меню
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-2 md:mb-4 relative z-10">
         <button
           onClick={handleBackToMenuClick}
@@ -348,12 +354,14 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
           </p>
         </div>
 
-        <button
-          onClick={resetGame}
-          className="liquid-glass-button flex items-center justify-center p-2 md:p-2.5 rounded-2xl transition-all duration-300 hover:scale-105 text-white/90"
-        >
-          <RotateCcw className="w-4 h-4" />
-        </button>
+        {state.gameStatus !== 'playing' && (
+          <button
+            onClick={resetGame}
+            className="liquid-glass-button flex items-center justify-center p-2 md:p-2.5 rounded-2xl transition-all duration-300 hover:scale-105 text-white/90"
+          >
+            <RotateCcw className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       <div className="flex-1 flex items-center justify-center px-1 md:px-2">
