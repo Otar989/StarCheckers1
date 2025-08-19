@@ -34,7 +34,7 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
 
   const connectOnlineGame = useCallback(() => {
     if (mode !== "online" || !user || !initData || state.roomId || !socket) return
-    const joinRoomId = roomCode
+    const joinRoomId = roomCode?.toUpperCase()
     const action = joinRoomId ? joinGame(joinRoomId, user, initData) : createGame(user, initData)
     action
       .then((res) => {
