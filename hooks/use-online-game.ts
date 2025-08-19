@@ -8,7 +8,7 @@ import { nanoid } from 'nanoid';
 
 interface Room {
   id: string;
-  status: 'waiting' | 'playing' | 'finished' | 'searching';
+  status: 'waiting' | 'playing' | 'finished';
   board_state: any;
   host_color: 'white' | 'black';
   turn: 'white' | 'black';
@@ -135,7 +135,7 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
           .from('rooms')
           .delete()
           .lt('updated_at', tenMinutesAgo)
-          .or('status.eq.finished,status.eq.searching');
+          .eq('status', 'finished');
           
       } catch (error) {
         console.error('Error cleaning up rooms:', error);
@@ -149,11 +149,11 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
     try {
       dispatch({ type: 'SET_ONLINE_STATE', payload: 'searching' });
 
-      // Сначала ищем существующие комнаты в поиске
+      // Сначала ищем существующие комнаты в ожидании
       const { data: searchingRooms, error: searchError } = await supabase
         .from('rooms')
         .select('*')
-        .eq('status', 'searching')
+        .eq('status', 'waiting')
         .limit(1);
 
       if (searchError) throw searchError;
@@ -180,14 +180,14 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
         dispatch({ type: 'SET_ONLINE_STATE', payload: 'playing' });
         
       } else {
-        // Не нашли комнату, создаем новую
+        // Не нашли комнату, создаем новую в статусе ожидания
         const roomId = nanoid(6).toUpperCase();
         const playerColor = Math.random() < 0.5 ? 'white' : 'black';
         const initialBoard = GameLogic.getInitialBoard();
 
         const { error } = await supabase.from('rooms').insert({
           id: roomId,
-          status: 'searching',
+          status: 'waiting',
           board_state: initialBoard,
           host_color: playerColor,
           turn: 'white',
@@ -260,7 +260,7 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
         throw new Error('Комната не найдена');
       }
 
-      if (room.status !== 'waiting' && room.status !== 'searching') {
+  if (room.status !== 'waiting') {
         throw new Error('Игра уже началась');
       }
 
