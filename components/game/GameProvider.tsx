@@ -50,6 +50,8 @@ export interface Move {
   timestamp: number
 }
 
+export type GameDispatch = React.Dispatch<GameAction>
+
 type GameAction =
   | { type: "SELECT_PIECE"; piece: Piece | null }
   | { type: "MOVE_PIECE"; from: Position; to: Position }

@@ -1,6 +1,58 @@
 import type { Piece, Position, GameState } from "@/components/game/GameProvider"
 
 export class GameLogic {
+  static getInitialBoard(): (Piece | null)[][] {
+    const board: (Piece | null)[][] = Array(8)
+      .fill(null)
+      .map(() => Array(8).fill(null));
+
+    // Place black pieces (top 3 rows)
+    for (let row = 0; row < 3; row++) {
+      for (let col = 0; col < 8; col++) {
+        if ((row + col) % 2 === 1) {
+          board[row][col] = {
+            id: `black-${row}-${col}`,
+            type: "regular",
+            color: "black",
+            position: { row, col },
+          }
+        }
+      }
+    }
+
+    // Place white pieces (bottom 3 rows)
+    for (let row = 5; row < 8; row++) {
+      for (let col = 0; col < 8; col++) {
+        if ((row + col) % 2 === 1) {
+          board[row][col] = {
+            id: `white-${row}-${col}`,
+            type: "regular",
+            color: "white",
+            position: { row, col },
+          }
+        }
+      }
+    }
+
+    return board;
+  }
+
+  static validateMove(board: (Piece | null)[][], from: Position, to: Position) {
+    const piece = board[from.row][from.col];
+    if (!piece) return { isValid: false };
+
+    const validMoves = this.getValidMoves(board, piece);
+    const isValidMove = validMoves.some(move => move.row === to.row && move.col === to.col);
+
+    if (!isValidMove) return { isValid: false };
+
+    const result = this.makeMove(board, from, to);
+    return {
+      isValid: true,
+      newState: result.newState
+    };
+  }
+
   static getValidMoves(board: (Piece | null)[][], piece: Piece): Position[] {
     // First check if there are any mandatory captures for this player
     const allCaptures = this.getAllCaptures(board, piece.color)
