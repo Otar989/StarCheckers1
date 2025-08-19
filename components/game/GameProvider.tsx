@@ -124,8 +124,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     case 'START_ONLINE_GAME':
       return { 
         ...state,
-        playerColor: state.playerColor || 'white',
-        opponentColor: state.opponentColor || 'black',
+        // Не меняем цвета игроков здесь: они назначаются при создании/входе в комнату
         lobbyStatus: 'idle',
         onlineState: 'playing'
       };

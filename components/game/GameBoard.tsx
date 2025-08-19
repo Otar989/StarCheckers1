@@ -159,7 +159,7 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
       isProcessingMove ||
       state.gameStatus !== "playing" ||
       (mode === "bot" && state.currentPlayer === "black") ||
-      (mode === "online" && state.playerColor && state.currentPlayer !== state.playerColor)
+      (mode === "online" && (!state.playerColor || state.currentPlayer !== state.playerColor))
     ) {
       return
     }

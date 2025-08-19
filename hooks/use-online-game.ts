@@ -70,33 +70,37 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
     if (!state.roomId) return;
 
     console.log('Setting up room subscription:', state.roomId);
-    
+    const currentRoomId = state.roomId;
+    const currentPlayerColor = state.playerColor;
+    const currentOnlineState = state.onlineState;
+    const currentGameStatus = state.gameStatus;
+
     // Subscribe to room changes
-    const roomChannel = supabase.channel(`room:${state.roomId}`)
+    const roomChannel = supabase.channel(`room:${currentRoomId}`)
       .on('postgres_changes' as any, {
         event: '*',
         schema: 'public',
         table: 'rooms',
-        filter: `id=eq.${state.roomId}`
+        filter: `id=eq.${currentRoomId}`
       }, (payload: { new: Room }) => {
         console.log('Room update received:', payload);
-  const room = payload.new;
+        const room = payload.new;
         
         // Начало игры
-        if (room.status === 'playing' && state.onlineState === 'waiting') {
+        if (room.status === 'playing' && currentOnlineState === 'waiting') {
           console.log('Starting online game');
           dispatch({ type: 'START_ONLINE_GAME' });
         }
         
         // Выход противника
-        if (room.status === 'finished' && state.gameStatus === 'playing') {
+        if (room.status === 'finished' && currentGameStatus === 'playing') {
           console.log('Opponent left the game');
           dispatch({ type: 'OPPONENT_LEFT' });
           return;
         }
 
   // Обновляем состояние доски когда после хода соперника теперь наш ход
-        if (room.turn === state.playerColor) {
+        if (room.turn === currentPlayerColor) {
           dispatch({
             type: 'SET_GAME_STATE',
             state: {
@@ -113,12 +117,12 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
       .subscribe();
 
     // Subscribe to moves
-    const movesChannel = supabase.channel(`moves:${state.roomId}`)
+  const movesChannel = supabase.channel(`moves:${currentRoomId}`)
       .on('postgres_changes' as any, {
         event: 'INSERT',
         schema: 'public',
         table: 'moves',
-        filter: `room_id=eq.${state.roomId}`
+    filter: `room_id=eq.${currentRoomId}`
       }, (payload: { new: MovePayload }) => {
         // История ходов фиксируется, но состояние берём из обновления комнаты
         console.debug('Move inserted', payload.new);
@@ -316,20 +320,14 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
 
       if (error) throw error;
 
-      dispatch({ type: 'SET_GAME_MODE', payload: 'online' });
-      dispatch({ type: 'SET_ROOM_ID', payload: roomId });
-      dispatch({ type: 'SET_PLAYER_COLOR', payload: playerColor });
-      dispatch({ type: 'SET_LOBBY_STATUS', payload: 'waiting' });
-      dispatch({ type: 'SET_ONLINE_STATE', payload: 'waiting' });
+  dispatch({ type: 'SET_GAME_MODE', payload: 'online' });
+  dispatch({ type: 'SET_ROOM_ID', payload: roomId });
+  dispatch({ type: 'SET_PLAYER_COLOR', payload: playerColor });
+  dispatch({ type: 'SET_LOBBY_STATUS', payload: 'waiting' });
+  dispatch({ type: 'SET_ONLINE_STATE', payload: 'waiting' });
 
-      // Инициализируем начальное состояние
-      dispatch({
-        type: 'SET_GAME_STATE',
-        state: {
-          board: initialBoard,
-          currentPlayer: 'white'
-        }
-      });
+  // Инициализируем начальное состояние (белые начинают)
+  dispatch({ type: 'SET_GAME_STATE', state: { board: initialBoard, currentPlayer: 'white' } });
 
       return roomId;
     } catch (error) {
@@ -372,18 +370,11 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
   if (updateError) throw updateError;
 
   dispatch({ type: 'SET_GAME_MODE', payload: 'online' });
-      dispatch({ type: 'SET_ROOM_ID', payload: roomId });
-      dispatch({ type: 'SET_PLAYER_COLOR', payload: playerColor });
-      dispatch({ type: 'SET_ONLINE_STATE', payload: 'playing' });
-      
-      // Устанавливаем начальное состояние
-  dispatch({ 
-        type: 'SET_GAME_STATE', 
-        state: {
-          board: room.board_state,
-          currentPlayer: room.turn
-        }
-      });
+  dispatch({ type: 'SET_ROOM_ID', payload: roomId });
+  dispatch({ type: 'SET_PLAYER_COLOR', payload: playerColor });
+  dispatch({ type: 'SET_ONLINE_STATE', payload: 'playing' });
+  // Подтягиваем состояние из комнаты (кто ходит — из turn)
+  dispatch({ type: 'SET_GAME_STATE', state: { board: room.board_state, currentPlayer: room.turn } });
   return true;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Не удалось присоединиться к игре';
@@ -430,7 +421,7 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
 
       if (moveError) throw moveError;
 
-      // Затем обновляем состояние комнаты
+  // Затем обновляем состояние комнаты
       const { error: roomError } = await supabase
         .from('rooms')
         .update({
@@ -442,8 +433,8 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
 
       if (roomError) throw roomError;
 
-      // Применяем ход локально
-      dispatch({ type: 'MAKE_LOCAL_MOVE', payload: move });
+  // Применяем новое состояние локально (синхронно с сервером)
+  dispatch({ type: 'SET_GAME_STATE', state: moveResult.newState });
 
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: 'Не удалось выполнить ход' });
