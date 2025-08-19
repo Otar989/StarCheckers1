@@ -1,17 +1,6 @@
 {
   "name": "starcheckers1",
   "dependencies": {
-    "socket.io-client": "^4.7.2"
-  },
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "build": "node scripts/check-env.js build && next build",
-    "dev": "node scripts/check-env.js dev && next dev",
-    "lint": "next lint",
-    "start": "node scripts/check-env.js start && next start"
-  },
-  "dependencies": {
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-accordion": "1.2.2",
     "@radix-ui/react-alert-dialog": "1.1.4",
@@ -40,6 +29,7 @@
     "@radix-ui/react-toggle": "1.1.1",
     "@radix-ui/react-toggle-group": "1.1.1",
     "@radix-ui/react-tooltip": "1.1.6",
+    "@supabase/supabase-js": "^2.55.0",
     "autoprefixer": "^10.4.20",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -49,6 +39,7 @@
     "geist": "latest",
     "input-otp": "1.4.1",
     "lucide-react": "^0.454.0",
+    "nanoid": "^5.1.5",
     "next": "15.2.4",
     "next-themes": "latest",
     "react": "^19",
@@ -64,6 +55,14 @@
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.9",
     "zod": "3.25.67"
+  },
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/check-env.js build && next build",
+    "dev": "node scripts/check-env.js dev && next dev",
+    "lint": "next lint",
+    "start": "node scripts/check-env.js start && next start"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.9",
