@@ -21,7 +21,7 @@ interface GameBoardProps {
 }
 
 export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoardProps) {
-  const { state, dispatch, sendMove, requestRematch, tryStartRematch, rematchDeadline, rematchRequested } = useGame()
+  const { state, dispatch, sendMove, leaveRoom, requestRematch, tryStartRematch, rematchDeadline, rematchRequested } = useGame()
   const { playSound, initializeAudio } = useAudio()
   const { hapticFeedback, user, initData } = useTelegram()
   const { theme } = useTheme()
@@ -31,6 +31,7 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
   const [showRoomCode, setShowRoomCode] = useState(false)
   const [joinError, setJoinError] = useState<string | null>(null)
   const cleanupRef = useRef(false)
+  const leavingRef = useRef(false)
   const [remaining, setRemaining] = useState<number>(60)
 
   // Таймер для окна рематча
@@ -54,11 +55,22 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
 
   // Поп‑ап завершения партии отображается ниже; отдельный баннер «Opponent disconnected» удалён
 
+  const performLeaveIfOnline = useCallback(async () => {
+    if (leavingRef.current) return
+    if (state.gameMode === 'online' && state.roomId) {
+      leavingRef.current = true
+      try { await leaveRoom(); } catch {}
+    }
+  }, [leaveRoom, state.gameMode, state.roomId])
+
   const cleanupGame = useCallback(() => {
     if (cleanupRef.current) return
     cleanupRef.current = true
 
   // Очистку онлайна выполняет GameProvider; здесь ничего не отправляем по сокетам.
+
+    // Сообщаем серверу о выходе
+    void performLeaveIfOnline()
 
     dispatch({
       type: "RESET_GAME",
@@ -68,13 +80,28 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
       type: "SET_GAME_STATE",
       state: { roomId: null, playerColor: null, opponentColor: null },
     })
-  }, [dispatch, mode, state.roomId])
+  }, [dispatch, mode, performLeaveIfOnline])
 
   useEffect(() => {
     return () => {
       cleanupGame()
     }
   }, [cleanupGame])
+
+  // Реагируем на закрытие страницы/скрытие вкладки
+  useEffect(() => {
+    const onBeforeUnload = () => { void performLeaveIfOnline() }
+    const onPageHide = () => { void performLeaveIfOnline() }
+    const onVisibility = () => { if (document.visibilityState === 'hidden') void performLeaveIfOnline() }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    window.addEventListener('pagehide', onPageHide)
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      window.removeEventListener('beforeunload', onBeforeUnload)
+      window.removeEventListener('pagehide', onPageHide)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
+  }, [performLeaveIfOnline])
 
   useEffect(() => {
     if (
@@ -247,7 +274,8 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
     setJoinError(null)
   }
 
-  const handleBackToMenuClick = () => {
+  const handleBackToMenuClick = async () => {
+    await performLeaveIfOnline()
     cleanupGame()
     onBackToMenu()
   }
@@ -339,7 +367,7 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
               {state.gameStatus === 'draw' && 'Ничья'}
               {state.gameStatus === 'player-left' && 'Соперник вышел из игры'}
             </h3>
-            {state.gameMode === 'online' ? (
+            {state.gameMode === 'online' && state.gameStatus !== 'player-left' ? (
               <>
                 <p className="text-sm text-white/70 mb-3">Начнём заново, если оба подтвердят за {remaining}s</p>
                 <div className="flex gap-3 justify-center">
@@ -356,7 +384,9 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
               </>
             ) : (
               <div className="flex gap-3 justify-center">
-                <button onClick={resetGame} className="liquid-glass-button px-4 py-2 rounded-xl">Начать сначала</button>
+                {state.gameStatus !== 'player-left' && (
+                  <button onClick={resetGame} className="liquid-glass-button px-4 py-2 rounded-xl">Начать сначала</button>
+                )}
                 <button onClick={handleBackToMenuClick} className="liquid-glass-button px-4 py-2 rounded-xl">Меню</button>
               </div>
             )}
