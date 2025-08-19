@@ -214,9 +214,27 @@ export function GameProvider({ children }: { children: ReactNode }) {
         })
       })
 
-      activeSocket.on("move", (data: { from: Position; to: Position }) => {
-        dispatch({ type: "MOVE_PIECE", from: data.from, to: data.to })
-      })
+      activeSocket.on(
+        "move",
+        (
+          data: {
+            from: Position
+            to: Position
+            board: (Piece | null)[][]
+            currentPlayer: PieceColor
+            gameStatus: GameState["gameStatus"]
+          },
+        ) => {
+          dispatch({
+            type: "SET_GAME_STATE",
+            state: {
+              board: data.board,
+              currentPlayer: data.currentPlayer,
+              gameStatus: data.gameStatus,
+            },
+          })
+        },
+      )
 
       activeSocket.on("gameOver", (data: { winner: PieceColor | "draw" }) => {
         let gameStatus: GameState["gameStatus"] = "draw"
