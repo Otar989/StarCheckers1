@@ -20,7 +20,7 @@ export default function StarCheckersApp() {
   const startGame = (mode: GameMode, diff?: Difficulty, code?: string) => {
     setGameMode(mode)
     if (diff) setDifficulty(diff)
-    setRoomCode(code ?? null)
+    setRoomCode(code ? code.toUpperCase() : null)
     setCurrentScreen("game")
   }
 

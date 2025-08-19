@@ -1,4 +1,4 @@
-import { randomUUID } from "crypto"
+import { randomBytes } from "crypto"
 import type { Piece } from "@/components/game/GameProvider"
 
 export type Player = {
@@ -18,6 +18,18 @@ export interface Room {
 }
 
 export const rooms = new Map<string, Room>()
+
+function generateRoomCode(length = 6): string {
+  // Use random bytes and convert to base36 to produce an uppercase code
+  let code = ""
+  while (code.length < length) {
+    const segment = BigInt("0x" + randomBytes(5).toString("hex"))
+      .toString(36)
+      .toUpperCase()
+    code += segment
+  }
+  return code.slice(0, length)
+}
 
 function initializeBoard(): (Piece | null)[][] {
   const board: (Piece | null)[][] = Array(8)
@@ -54,7 +66,14 @@ function initializeBoard(): (Piece | null)[][] {
 }
 
 export function createRoom(player: Player): Room {
-  const id = randomUUID()
+  let id: string
+  let attempts = 0
+  do {
+    if (attempts > 5) throw new Error("Failed to generate unique room code")
+    id = generateRoomCode()
+    attempts++
+  } while (rooms.has(id))
+
   const room: Room = {
     id,
     board: initializeBoard(),
@@ -67,25 +86,25 @@ export function createRoom(player: Player): Room {
 }
 
 export function joinRoom(id: string, player: Player): Room | null {
-  const room = rooms.get(id)
+  const room = rooms.get(id.toUpperCase())
   if (!room || room.players.length >= 2) return null
   room.players.push(player)
   return room
 }
 
 export function getRoom(id: string): Room | undefined {
-  return rooms.get(id)
+  return rooms.get(id.toUpperCase())
 }
 
 export function setPlayerSocket(roomId: string, color: "white" | "black", socketId: string) {
-  const room = rooms.get(roomId)
+  const room = rooms.get(roomId.toUpperCase())
   if (!room) return
   const player = room.players.find((p) => p.color === color)
   if (player) player.socketId = socketId
 }
 
 export function leaveRoom(roomId: string, socketId: string) {
-  const room = rooms.get(roomId)
+  const room = rooms.get(roomId.toUpperCase())
   if (!room) return
   room.players = room.players.filter((p) => p.socketId !== socketId)
   if (room.players.length === 0) {

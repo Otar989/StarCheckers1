@@ -9,10 +9,11 @@ interface RoomCodeToastProps {
 
 export function RoomCodeToast({ roomId, position = "top", onClose }: RoomCodeToastProps) {
   const [copied, setCopied] = useState(false)
+  const code = roomId.toUpperCase()
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(roomId)
+      await navigator.clipboard.writeText(code)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch (err) {
@@ -25,7 +26,7 @@ export function RoomCodeToast({ roomId, position = "top", onClose }: RoomCodeToa
   return (
     <div className={`fixed ${posClass} left-1/2 -translate-x-1/2 z-50`}>
       <div className="liquid-glass flex items-center gap-2 px-4 py-2 rounded-xl">
-        <span className="font-mono text-sm text-white">{roomId}</span>
+        <span className="font-mono text-lg tracking-widest text-white">{code}</span>
         <button
           onClick={handleCopy}
           className="bg-white/10 hover:bg-white/20 text-white text-xs px-2 py-1 rounded-lg transition-colors"

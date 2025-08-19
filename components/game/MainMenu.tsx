@@ -217,9 +217,10 @@ export function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps) {
                       <input
                         type="text"
                         value={roomCode}
-                        onChange={(e) => setRoomCode(e.target.value)}
+                        onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
                         placeholder="Код комнаты"
-                        className="w-full h-10 px-4 rounded-2xl bg-white/5 border border-white/10 text-white placeholder:text-white/50 focus:outline-none"
+                        maxLength={8}
+                        className="w-full h-10 px-4 rounded-2xl bg-white/5 border border-white/10 text-white placeholder:text-white/50 focus:outline-none uppercase"
                       />
                       <div className="flex gap-2">
                         <button
