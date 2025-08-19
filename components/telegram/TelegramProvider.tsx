@@ -163,8 +163,9 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
   const botUsername = (process.env.NEXT_PUBLIC_TG_BOT_USERNAME || "").replace(/^@+/, "")
   // Прямая ссылка на Mini App по требованиям BotFather: t.me/<bot>/play
   const appLink = botUsername ? `https://t.me/${botUsername}/play` : ""
+    // В startapp разрешены только A-Z, a-z, 0-9, _ и -, поэтому используем room_XXXX (без двоеточия)
     const deepLink = botUsername
-      ? `https://t.me/${botUsername}/play?startapp=${encodeURIComponent(`room:${code}`)}`
+      ? `https://t.me/${botUsername}/play?startapp=${encodeURIComponent(`room_${code}`)}`
       : ""
     const fallbackUrl = typeof window !== 'undefined'
       ? `${window.location.origin}/?room=${code}`

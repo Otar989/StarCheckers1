@@ -32,11 +32,17 @@ export function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps) {
     }
   }, [joinRoom]);
 
-  // Автовход по deep-link из Telegram: start_param = "room:XXXX"
+  // Автовход по deep-link из Telegram: поддерживаем старый формат "room:XXXX" и новый "room_XXXX"
   useEffect(() => {
     if (!isReady) return;
-    if (startParam && startParam.startsWith('room:')) {
-      const code = startParam.split(':')[1]?.trim().toUpperCase();
+    if (!startParam) return;
+    let code = '';
+    if (startParam.startsWith('room:')) {
+      code = startParam.split(':')[1]?.trim().toUpperCase() || '';
+    } else if (startParam.startsWith('room_')) {
+      code = startParam.substring('room_'.length).trim().toUpperCase();
+    }
+    if (code) {
       if (code) {
         (async () => {
           const ok = await joinRoom(code);
