@@ -233,16 +233,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
     }
   }, [state.roomId, state.lobbyStatus]);
 
-  // Handle online game move sending
-  useEffect(() => {
-    if (state.gameMode === 'online' && state.moveHistory.length > 0) {
-      const lastMove = state.moveHistory[state.moveHistory.length - 1];
-      if (state.roomId) {
-        sendMove(lastMove);
-      }
-    }
-  }, [state.moveHistory, state.gameMode, state.roomId, sendMove]);
-
   useEffect(() => {
     if (state.error) {
       console.error('Game error:', state.error);

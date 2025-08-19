@@ -21,7 +21,7 @@ interface GameBoardProps {
 }
 
 export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoardProps) {
-  const { state, dispatch } = useGame()
+  const { state, dispatch, sendMove } = useGame()
   const { playSound, initializeAudio } = useAudio()
   const { hapticFeedback, user, initData } = useTelegram()
   const { theme } = useTheme()
@@ -113,7 +113,7 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
     isProcessingMove,
   ])
 
-  const handleSquareClick = (row: number, col: number) => {
+  const handleSquareClick = async (row: number, col: number) => {
     if (
       isAIThinking ||
       isProcessingMove ||
@@ -162,35 +162,48 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
       const fromPosition = state.selectedPiece.position
       const moveResult = GameLogic.makeMove(state.board, fromPosition, position)
 
-      if (moveResult.success && moveResult.newState) {
-        if (moveResult.hasMoreCaptures) {
-          dispatch({ type: "SET_GAME_STATE", state: moveResult.newState })
-        } else {
+      if (moveResult.success && state.selectedPiece) {
+        if (mode === "online") {
+          const move = {
+            from: fromPosition,
+            to: position,
+            capturedPieces: moveResult.capturedPieces ?? [],
+            timestamp: Date.now(),
+          }
+          playSound(moveResult.capturedPieces.length > 0 ? "capture" : "move")
+          hapticFeedback(moveResult.capturedPieces.length > 0 ? "medium" : "light")
+          await sendMove(move)
           dispatch({ type: "SELECT_PIECE", piece: null })
           dispatch({ type: "SET_VALID_MOVES", moves: [] })
-          dispatch({ type: "SET_GAME_STATE", state: moveResult.newState })
+        } else {
+          // Локальные режимы: применяем ход сразу
+          if (moveResult.hasMoreCaptures) {
+            dispatch({ type: "SET_GAME_STATE", state: moveResult.newState! })
+          } else {
+            dispatch({ type: "SELECT_PIECE", piece: null })
+            dispatch({ type: "SET_VALID_MOVES", moves: [] })
+            dispatch({ type: "SET_GAME_STATE", state: moveResult.newState! })
+          }
+
+          playSound(moveResult.capturedPieces.length > 0 ? "capture" : "move")
+          hapticFeedback(moveResult.capturedPieces.length > 0 ? "medium" : "light")
+
+          if (
+            moveResult.newState &&
+            moveResult.newState.board &&
+            moveResult.newState.board[position.row][position.col]?.type === "king" &&
+            state.selectedPiece &&
+            state.selectedPiece.type === "regular"
+          ) {
+            playSound("promote")
+            hapticFeedback("heavy")
+          }
+
+          if (moveResult.newState!.gameStatus !== "playing") {
+            playSound("win")
+            hapticFeedback("heavy")
+          }
         }
-
-        playSound(moveResult.capturedPieces.length > 0 ? "capture" : "move")
-        hapticFeedback(moveResult.capturedPieces.length > 0 ? "medium" : "light")
-
-        if (
-          moveResult.newState &&
-          moveResult.newState.board &&
-          moveResult.newState.board[position.row][position.col]?.type === "king" &&
-          state.selectedPiece &&
-          state.selectedPiece.type === "regular"
-        ) {
-          playSound("promote")
-          hapticFeedback("heavy")
-        }
-
-        if (moveResult.newState.gameStatus !== "playing") {
-          playSound("win")
-          hapticFeedback("heavy")
-        }
-
-  // В онлайн-режиме отправка хода теперь делается в GameProvider через Supabase.
       }
 
       setIsProcessingMove(false)

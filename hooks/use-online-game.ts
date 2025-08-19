@@ -90,8 +90,8 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
           return;
         }
 
-        // Обновление состояния доски только если это ход противника
-        if (room.turn !== state.playerColor) {
+        // Обновляем состояние доски когда после хода соперника теперь наш ход
+        if (room.turn === state.playerColor) {
           dispatch({
             type: 'SET_GAME_STATE',
             state: {
@@ -111,11 +111,8 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
         table: 'moves',
         filter: `room_id=eq.${state.roomId}`
       }, (payload: { new: MovePayload }) => {
-        const move = payload.new.move;
-        // Применяем ход только если это ход противника
-        if (move && state.playerColor !== state.currentPlayer) {
-          dispatch({ type: 'APPLY_REMOTE_MOVE', payload: move });
-        }
+        // История ходов фиксируется, но состояние берём из обновления комнаты
+        console.debug('Move inserted', payload.new);
       })
       .subscribe();
 
