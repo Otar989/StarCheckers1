@@ -197,7 +197,7 @@ const GameContext = createContext<{
 export function GameProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(gameReducer, {
     ...initialState,
-    board: initializeBoard(),
+    board: GameLogic.getInitialBoard(),
   });
 
   const { user } = useTelegram();
@@ -219,6 +219,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     joinRoom,
     leaveRoom,
     sendMove,
+    searchRandomGame,
   } = useOnlineGame(dispatch, state);
 
   // Показываем код комнаты, когда она создана
@@ -304,6 +305,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         joinRoom,
         leaveRoom,
         sendMove,
+        searchRandomGame,
       }}
     >
       {children}
