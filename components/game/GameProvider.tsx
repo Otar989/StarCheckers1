@@ -164,7 +164,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       };
 
     case 'MAKE_LOCAL_MOVE': {
-      if (state.gameMode === 'online' || state.gameMode === 'matchmaking') {
+      if (state.gameMode === 'online') {
         const move = action.payload;
         const moveResult = GameLogic.makeMove(state.board, move.from, move.to);
         if (moveResult.success && moveResult.newState) {
@@ -195,9 +195,51 @@ const GameContext = createContext<{
 } | null>(null);
 
 export function GameProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(gameReducer, initialState);
+  const [state, dispatch] = useReducer(gameReducer, {
+    ...initialState,
+    board: initializeBoard(),
+  });
+
   const { user } = useTelegram();
-  
+  const {
+    recordWin,
+    recordLoss,
+    recordDraw,
+    recordOnlineWin,
+    recordOnlineLoss,
+    recordOnlineDraw,
+  } = useGameStats(user?.id);
+
+  const statsRecordedRef = useRef(false);
+  const playerColorRef = useRef<PieceColor | null>(null);
+  const [showRoomCode, setShowRoomCode] = useState(false);
+
+  const {
+    createRoom,
+    joinRoom,
+    leaveRoom,
+    sendMove,
+  } = useOnlineGame(dispatch, state);
+
+  // Показываем код комнаты, когда она создана
+  useEffect(() => {
+    if (state.roomId && state.lobbyStatus === 'waiting') {
+      setShowRoomCode(true);
+    } else {
+      setShowRoomCode(false);
+    }
+  }, [state.roomId, state.lobbyStatus]);
+
+  // Handle online game move sending
+  useEffect(() => {
+    if (state.gameMode === 'online' && state.moveHistory.length > 0) {
+      const lastMove = state.moveHistory[state.moveHistory.length - 1];
+      if (state.roomId) {
+        sendMove(lastMove);
+      }
+    }
+  }, [state.moveHistory, state.gameMode, state.roomId, sendMove]);
+
   useEffect(() => {
     if (state.error) {
       console.error('Game error:', state.error);
@@ -205,38 +247,51 @@ export function GameProvider({ children }: { children: ReactNode }) {
     }
   }, [state.error]);
 
+  // Запись статистики
   useEffect(() => {
-    if (state.gameMode === 'online' && state.roomId) {
-      console.log('Online game started:', {
-        mode: state.gameMode,
-        roomId: state.roomId,
-        playerColor: state.playerColor
-      });
+    if (
+      state.gameStatus !== 'playing' &&
+      state.gameStatus !== 'player-left' &&
+      !statsRecordedRef.current
+    ) {
+      if (state.gameMode === 'bot') {
+        if (state.gameStatus === 'white-wins') {
+          recordWin();
+          statsRecordedRef.current = true;
+        } else if (state.gameStatus === 'black-wins') {
+          recordLoss();
+          statsRecordedRef.current = true;
+        } else if (state.gameStatus === 'draw') {
+          recordDraw();
+          statsRecordedRef.current = true;
+        }
+      } else if (state.gameMode === 'online') {
+        if (state.gameStatus === 'white-wins') {
+          recordOnlineWin();
+          statsRecordedRef.current = true;
+        } else if (state.gameStatus === 'black-wins') {
+          recordOnlineLoss();
+          statsRecordedRef.current = true;
+        } else if (state.gameStatus === 'draw') {
+          recordOnlineDraw();
+          statsRecordedRef.current = true;
+        }
+      }
+      // в локальном режиме статистика не ведётся
     }
-  }, [state.gameMode, state.roomId]);
-  
-  useOnlineGame(dispatch, state);
+  }, [
+    state.gameStatus,
+    state.gameMode,
+    recordWin,
+    recordLoss,
+    recordDraw,
+    recordOnlineWin,
+    recordOnlineLoss,
+    recordOnlineDraw,
+  ]);
 
-  const setGameMode = (mode: GameMode) => dispatch({ type: 'SET_GAME_MODE', payload: mode });
-
-  const createRoom = async () => {
-    // Логика для создания комнаты
-  };
-
-  const joinRoom = async (code: string) => {
-    // Логика для присоединения к комнате
-  };
-
-  const leaveRoom = async () => {
-    // Логика для выхода из комнаты
-  };
-
-  const sendMove = async (move: Move) => {
-    // Логика для отправки хода
-  };
-
-  const searchRandomGame = async () => {
-    // Логика для поиска случайной игры
+  const setGameMode = (mode: GameMode) => {
+    dispatch({ type: 'SET_GAME_STATE', state: { gameMode: mode } });
   };
 
   return (
@@ -249,7 +304,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
         joinRoom,
         leaveRoom,
         sendMove,
-        searchRandomGame,
       }}
     >
       {children}

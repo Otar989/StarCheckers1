@@ -4,7 +4,7 @@ import type { Move } from '@/types/game-types';
 import type { GameState, GameDispatch } from '@/components/game/GameProvider';
 import { GameLogic } from '@/lib/game-logic';
 import { nanoid } from 'nanoid';
-import type { GameMode } from '@/types/game-config';
+// unused import removed
 
 interface Room {
   id: string;
@@ -172,9 +172,9 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
           })
           .eq('id', room.id);
 
-        if (updateError) throw updateError;
+  if (updateError) throw updateError;
 
-        dispatch({ type: 'SET_GAME_MODE', payload: 'matchmaking' });
+  dispatch({ type: 'SET_GAME_MODE', payload: 'online' });
         dispatch({ type: 'SET_ROOM_ID', payload: room.id });
         dispatch({ type: 'SET_PLAYER_COLOR', payload: playerColor });
         dispatch({ type: 'SET_ONLINE_STATE', payload: 'playing' });
@@ -194,9 +194,9 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
           updated_at: new Date().toISOString()
         });
 
-        if (error) throw error;
+  if (error) throw error;
 
-        dispatch({ type: 'SET_GAME_MODE', payload: 'matchmaking' });
+  dispatch({ type: 'SET_GAME_MODE', payload: 'online' });
         dispatch({ type: 'SET_ROOM_ID', payload: roomId });
         dispatch({ type: 'SET_PLAYER_COLOR', payload: playerColor });
         dispatch({ type: 'SET_ONLINE_STATE', payload: 'waiting' });
@@ -226,7 +226,7 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
 
       if (error) throw error;
 
-      dispatch({ type: 'SET_GAME_MODE', payload: 'online' });
+  dispatch({ type: 'SET_GAME_MODE', payload: 'online' });
       dispatch({ type: 'SET_ROOM_ID', payload: roomId });
       dispatch({ type: 'SET_PLAYER_COLOR', payload: playerColor });
       dispatch({ type: 'SET_LOBBY_STATUS', payload: 'waiting' });
@@ -276,9 +276,9 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
         })
         .eq('id', roomId);
 
-      if (updateError) throw updateError;
+  if (updateError) throw updateError;
 
-      dispatch({ type: 'SET_GAME_MODE', payload: room.status === 'searching' ? 'matchmaking' : 'online' });
+  dispatch({ type: 'SET_GAME_MODE', payload: 'online' });
       dispatch({ type: 'SET_ROOM_ID', payload: roomId });
       dispatch({ type: 'SET_PLAYER_COLOR', payload: playerColor });
       dispatch({ type: 'SET_ONLINE_STATE', payload: 'playing' });
@@ -360,7 +360,7 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
     joinRoom,
     leaveRoom,
     sendMove,
-    searchRandomGame,
-    isLoading
+  searchRandomGame,
+  isLoading
   };
 }

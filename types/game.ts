@@ -1,6 +1,4 @@
-export type GameMode = 'bot' | 'online' | 'matchmaking';
-
-export type Difficulty = 'easy' | 'medium' | 'hard';
+export type GameMode = "bot" | "local" | "online";
 
 export type OnlineGameState = 'idle' | 'searching' | 'waiting' | 'playing' | 'finished';
 
