@@ -100,7 +100,15 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
       setIsTelegramWebApp(true)
       setUser(tgWebApp.initDataUnsafe.user || null)
       setInitData(tgWebApp.initData)
-  setStartParam((tgWebApp.initDataUnsafe as any)?.start_param || null)
+      // Пытаемся вытащить start_param из нескольких источников для надёжности
+      let sp: string | null = (tgWebApp.initDataUnsafe as any)?.start_param || null
+      if (!sp && typeof window !== 'undefined') {
+        const qs = new URLSearchParams(window.location.search)
+        sp = qs.get('tgWebAppStartParam') || qs.get('startapp') || null
+        // Поддержим прямой проброс ?room=XXXX как start_param
+        if (!sp && qs.get('room')) sp = `room_${qs.get('room')}`
+      }
+      setStartParam(sp)
       setColorScheme(tgWebApp.colorScheme)
 
       // Initialize Telegram WebApp
@@ -125,7 +133,12 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
         tgWebApp.offEvent("themeChanged", handleThemeChanged)
       }
     } else {
-      // Not in Telegram WebApp environment
+      // Not in Telegram WebApp environment — читаем start_param из URL для дев-режима/браузера
+      if (typeof window !== 'undefined') {
+        const qs = new URLSearchParams(window.location.search)
+        const sp = qs.get('tgWebAppStartParam') || qs.get('startapp') || (qs.get('room') ? `room_${qs.get('room')}` : null)
+        setStartParam(sp)
+      }
       setIsReady(true)
     }
   }, [])
