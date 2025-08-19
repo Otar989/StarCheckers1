@@ -57,7 +57,7 @@ export function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps) {
           100% { transform: translateY(0); }
         }
       `}</style>
-      {state.roomId && !state.opponentColor && <RoomCodeToast roomId={state.roomId} />}
+  {state.roomId && state.lobbyStatus === 'waiting' && <RoomCodeToast roomId={state.roomId} />}
       <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       {/* Animated background elements */}
       <div className="absolute inset-0">
@@ -198,7 +198,10 @@ export function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps) {
                   {onlineStep === "options" && (
                     <div className="space-y-2">
                       <button
-                        onClick={() => setOnlineStep("waiting")}
+                        onClick={async () => {
+                          await createRoom();
+                          setOnlineStep("waiting");
+                        }}
                         className="w-full flex items-center justify-center gap-3 h-12 px-4 rounded-2xl bg-gradient-to-r from-emerald-500/20 to-green-500/20 border border-white/20 transition-all duration-300 hover:scale-105 hover:from-emerald-500/30 hover:to-green-500/30 text-white hover:shadow-lg"
                       >
                         Создать игру
@@ -221,13 +224,31 @@ export function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps) {
                   {onlineStep === "waiting" && (
                     <div className="space-y-4">
                       <LoadingSpinner message="Ожидание второго игрока..." />
+                      {state.roomId && (
+                        <div className="flex items-center justify-between bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white">
+                          <span className="text-xs opacity-70">Код комнаты</span>
+                          <div className="flex items-center gap-3">
+                            <span className="font-mono tracking-widest text-lg">{state.roomId.toUpperCase()}</span>
+                            <button
+                              onClick={async () => {
+                                try { await navigator.clipboard.writeText(state.roomId!.toUpperCase()); } catch {}
+                              }}
+                              className="h-8 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-xs"
+                            >
+                              Копировать
+                            </button>
+                          </div>
+                        </div>
+                      )}
                       <div className="flex gap-2">
-                        <button
-                          onClick={() => handleStartGame("online")}
-                          className="flex-1 h-10 rounded-2xl bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-white/20 text-white hover:scale-105 transition-all"
-                        >
-                          Начать
-                        </button>
+                        {state.roomId && (
+                          <button
+                            onClick={async () => { try { await navigator.clipboard.writeText(state.roomId!.toUpperCase()); } catch {} }}
+                            className="flex-1 h-10 rounded-2xl bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-white/20 text-white hover:scale-105 transition-all"
+                          >
+                            Скопировать код
+                          </button>
+                        )}
                         <button
                           onClick={() => setOnlineStep("none")}
                           className="h-10 px-4 rounded-2xl bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 transition-all"
