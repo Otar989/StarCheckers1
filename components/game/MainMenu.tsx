@@ -22,6 +22,7 @@ export function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps) {
   const [onlineStep, setOnlineStep] = useState<"none" | "options" | "waiting" | "join">("none")
   const [roomCode, setRoomCode] = useState("")
   const [autoCreateTried, setAutoCreateTried] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -61,6 +62,28 @@ export function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps) {
       onStartGame(mode, difficulty)
     }
   };
+
+  const copyRoomCode = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch {
+      try {
+        const ta = document.createElement('textarea')
+        ta.value = text
+        ta.style.position = 'fixed'
+        ta.style.opacity = '0'
+        document.body.appendChild(ta)
+        ta.focus()
+        ta.select()
+        document.execCommand('copy')
+        document.body.removeChild(ta)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 1500)
+      } catch {}
+    }
+  }
 
   return (
     <>
@@ -247,25 +270,27 @@ export function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps) {
                     <div className="space-y-4">
                       <LoadingSpinner message="Ожидание второго игрока..." />
                       {state.roomId ? (
-                        <div className="flex items-center justify-between bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white">
-                          <span className="text-xs opacity-70">Код комнаты</span>
-                          <div className="flex items-center gap-2 sm:gap-3">
+                        <div className="bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs opacity-70">Код комнаты</span>
+                          </div>
+                          <div className="mt-2 flex items-center justify-between gap-2">
                             <span className="font-mono tracking-widest text-lg">{state.roomId.toUpperCase()}</span>
                             <button
-                              onClick={async () => {
-                                try { await navigator.clipboard.writeText(state.roomId!.toUpperCase()); } catch {}
-                              }}
+                              onClick={() => copyRoomCode(state.roomId!.toUpperCase())}
                               className="h-8 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-xs"
+                              type="button"
                             >
-                              Копировать
-                            </button>
-                            <button
-                              onClick={() => shareInvite(state.roomId!)}
-                              className="h-8 px-3 rounded-xl bg-blue-500/20 hover:bg-blue-500/30 border border-white/10 text-xs"
-                            >
-                              Поделиться
+                              {copied ? "Скопировано" : "Копировать"}
                             </button>
                           </div>
+                          <button
+                            onClick={() => shareInvite(state.roomId!)}
+                            className="mt-3 w-full h-9 rounded-xl bg-blue-500/20 hover:bg-blue-500/30 border border-white/10 text-xs"
+                            type="button"
+                          >
+                            Поделиться
+                          </button>
                         </div>
                       ) : (
                         <div className="space-y-2">
