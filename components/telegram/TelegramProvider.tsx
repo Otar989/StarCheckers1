@@ -174,12 +174,10 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
         : `Залетай в StarCheckers! Код комнаты: ${code}. Открой мини-приложение и введи код.`
     )
   // Внутри Telegram откроем лист "Переслать" напрямую через tg://
-  const tgMsgUrl = `tg://msg_url?url=${encodeURIComponent(deepLink || fallbackUrl)}&text=${text}`
-  const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(deepLink || fallbackUrl)}&text=${text}`
+    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(deepLink || fallbackUrl)}&text=${text}`
     try {
       if (webApp) {
-    // Пробуем tg-схему, если недоступна — http-ссылка тоже откроет in-app share
-    try { webApp.openTelegramLink(tgMsgUrl) } catch { webApp.openTelegramLink(shareUrl) }
+      webApp.openTelegramLink(shareUrl)
       } else if ((navigator as any)?.share) {
   const payload = deepLink || fallbackUrl || `StarCheckers — код комнаты: ${code}`
   ;(navigator as any).share({ title: "StarCheckers", text: payload, url: deepLink || fallbackUrl || undefined }).catch(() => {})
