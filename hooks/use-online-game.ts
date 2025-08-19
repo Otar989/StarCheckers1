@@ -20,21 +20,27 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
       }, (payload) => {
         const room = payload.new as any;
         
+        // Начало игры
         if (room.status === 'playing' && state.lobbyStatus === 'waiting') {
           dispatch({ type: 'START_ONLINE_GAME' });
         }
         
-        if (room.status === 'finished') {
+        // Выход противника
+        if (room.status === 'finished' && state.gameStatus === 'playing') {
           dispatch({ type: 'OPPONENT_LEFT' });
+          return;
         }
 
-        dispatch({
-          type: 'SET_GAME_STATE',
-          state: {
-            board: room.board_state,
-            currentPlayer: room.turn
-          }
-        });
+        // Обновление состояния доски только если это ход противника
+        if (room.turn !== state.playerColor) {
+          dispatch({
+            type: 'SET_GAME_STATE',
+            state: {
+              board: room.board_state,
+              currentPlayer: room.turn
+            }
+          });
+        }
       })
       .subscribe();
 
@@ -47,7 +53,10 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
         filter: `room_id=eq.${state.roomId}`
       }, (payload) => {
         const move = payload.new.move as Move;
-        dispatch({ type: 'APPLY_REMOTE_MOVE', payload: move });
+        // Применяем ход только если это ход противника
+        if (move && state.playerColor !== state.currentPlayer) {
+          dispatch({ type: 'APPLY_REMOTE_MOVE', payload: move });
+        }
       })
       .subscribe();
 
@@ -55,96 +64,143 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
       roomChannel.unsubscribe();
       movesChannel.unsubscribe();
     };
-  }, [state.roomId, dispatch]);
+  }, [state.roomId, state.playerColor, state.currentPlayer, state.gameStatus, state.lobbyStatus, dispatch]);
 
   const createRoom = useCallback(async () => {
-    const roomId = nanoid(6).toUpperCase();
-    const initialBoard = GameLogic.getInitialBoard();
-    
-    const { error } = await supabase.from('rooms').insert({
-      id: roomId,
-      board_state: initialBoard,
-      host_color: Math.random() < 0.5 ? 'white' : 'black'
-    });
+    try {
+      const roomId = nanoid(6).toUpperCase();
+      const playerColor = Math.random() < 0.5 ? 'white' : 'black';
+      const initialBoard = GameLogic.getInitialBoard();
+      
+      const { error } = await supabase.from('rooms').insert({
+        id: roomId,
+        status: 'waiting',
+        board_state: initialBoard,
+        host_color: playerColor,
+        turn: 'white' // Белые всегда ходят первыми
+      });
 
-    if (error) {
+      if (error) throw error;
+
+      dispatch({ type: 'SET_GAME_MODE', payload: 'online' });
+      dispatch({ type: 'SET_ROOM_ID', payload: roomId });
+      dispatch({ type: 'SET_PLAYER_COLOR', payload: playerColor });
+      dispatch({ type: 'SET_LOBBY_STATUS', payload: 'waiting' });
+      
+      // Инициализируем начальное состояние
+      dispatch({ 
+        type: 'SET_GAME_STATE', 
+        state: {
+          board: initialBoard,
+          currentPlayer: 'white'
+        }
+      });
+
+    } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: 'Не удалось создать комнату' });
-      return;
     }
-
-    dispatch({ type: 'SET_GAME_MODE', payload: 'online' });
-    dispatch({ type: 'SET_ROOM_ID', payload: roomId });
-    dispatch({ type: 'SET_LOBBY_STATUS', payload: 'waiting' });
   }, [dispatch]);
 
   const joinRoom = useCallback(async (roomId: string) => {
-    const { data: room, error } = await supabase
-      .from('rooms')
-      .select('*')
-      .eq('id', roomId)
-      .single();
+    try {
+      const { data: room, error } = await supabase
+        .from('rooms')
+        .select('*')
+        .eq('id', roomId)
+        .single();
 
-    if (error || !room) {
-      dispatch({ type: 'SET_ERROR', payload: 'Неверный код комнаты' });
-      return;
+      if (error || !room) {
+        throw new Error('Комната не найдена');
+      }
+
+      if (room.status !== 'waiting') {
+        throw new Error('Игра уже началась');
+      }
+
+      // Присоединяемся с противоположным цветом
+      const playerColor = room.host_color === 'white' ? 'black' : 'white';
+
+      // Обновляем статус комнаты
+      const { error: updateError } = await supabase
+        .from('rooms')
+        .update({ status: 'playing' })
+        .eq('id', roomId);
+
+      if (updateError) throw updateError;
+
+      dispatch({ type: 'SET_GAME_MODE', payload: 'online' });
+      dispatch({ type: 'SET_ROOM_ID', payload: roomId });
+      dispatch({ type: 'SET_PLAYER_COLOR', payload: playerColor });
+      
+      // Устанавливаем начальное состояние
+      dispatch({ 
+        type: 'SET_GAME_STATE', 
+        state: {
+          board: room.board_state,
+          currentPlayer: room.turn
+        }
+      });
+
+      dispatch({ type: 'START_ONLINE_GAME' });
+
+    } catch (error) {
+      dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'Не удалось присоединиться к игре' });
     }
-
-    if (room.status !== 'waiting') {
-      dispatch({ type: 'SET_ERROR', payload: 'Игра уже началась' });
-      return;
-    }
-
-    await supabase.from('rooms')
-      .update({ status: 'playing' })
-      .eq('id', roomId);
-
-    dispatch({ type: 'SET_GAME_MODE', payload: 'online' });
-    dispatch({ type: 'SET_ROOM_ID', payload: roomId });
-    dispatch({ 
-      type: 'SET_PLAYER_COLOR', 
-      payload: room.host_color === 'white' ? 'black' : 'white' 
-    });
   }, [dispatch]);
 
   const leaveRoom = useCallback(async () => {
     if (!state.roomId) return;
 
-    await supabase.from('rooms')
-      .update({ status: 'finished' })
-      .eq('id', state.roomId);
+    try {
+      await supabase
+        .from('rooms')
+        .update({ status: 'finished' })
+        .eq('id', state.roomId);
 
-    dispatch({ type: 'RESET_GAME' });
+      dispatch({ type: 'RESET_GAME' });
+    } catch (error) {
+      dispatch({ type: 'SET_ERROR', payload: 'Ошибка при выходе из игры' });
+    }
   }, [state.roomId, dispatch]);
 
   const sendMove = useCallback(async (move: Move) => {
-    if (!state.roomId) return;
+    if (!state.roomId || !state.playerColor || state.playerColor !== state.currentPlayer) return;
 
-    const moveResult = GameLogic.validateMove(state.board, move.from, move.to);
-    if (!moveResult.isValid) return;
+    try {
+      // Проверяем валидность хода
+      const moveResult = GameLogic.validateMove(state.board, move.from, move.to);
+      if (!moveResult.isValid || !moveResult.newState) {
+        throw new Error('Недопустимый ход');
+      }
 
-    const { error: moveError } = await supabase.from('moves')
-      .insert({
-        room_id: state.roomId,
-        move
-      });
+      // Сначала записываем ход
+      const { error: moveError } = await supabase
+        .from('moves')
+        .insert({
+          room_id: state.roomId,
+          move
+        });
 
-    if (moveError) {
-      dispatch({ type: 'SET_ERROR', payload: 'Не удалось отправить ход' });
-      return;
+      if (moveError) throw moveError;
+
+      // Затем обновляем состояние комнаты
+      const { error: roomError } = await supabase
+        .from('rooms')
+        .update({
+          board_state: moveResult.newState.board,
+          turn: moveResult.newState.currentPlayer
+        })
+        .eq('id', state.roomId);
+
+      if (roomError) throw roomError;
+
+      // Применяем ход локально
+      dispatch({ type: 'MAKE_LOCAL_MOVE', payload: move });
+
+    } catch (error) {
+      dispatch({ type: 'SET_ERROR', payload: 'Не удалось выполнить ход' });
     }
-
-    const { error: roomError } = await supabase.from('rooms')
-      .update({
-        board_state: moveResult.newState?.board,
-        turn: moveResult.newState?.currentPlayer
-      })
-      .eq('id', state.roomId);
-
-    if (roomError) {
-      dispatch({ type: 'SET_ERROR', payload: 'Не удалось обновить состояние игры' });
-      return;
-    }
-  }, [state.roomId, state.board, dispatch]);
+  }, [state.roomId, state.board, state.playerColor, state.currentPlayer, dispatch]);
 
   return {
     createRoom,
