@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useState } from 'react';
+import { useEffect, useCallback, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase-client';
 import type { Move } from '@/types/game-types';
 import type { GameState, GameDispatch } from '@/components/game/GameProvider';
@@ -28,6 +28,7 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
   const [rematchDeadline, setRematchDeadline] = useState<number | null>(null);
   const [rematchRequested, setRematchRequested] = useState<boolean>(false);
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
+  const rematchInProgressRef = useRef(false);
 
   // Универсальная утилита ретраев
   const withRetry = useCallback(async <T extends { error?: unknown }>(fn: () => Promise<T>, tries = 3): Promise<T> => {
@@ -96,7 +97,7 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
         schema: 'public',
         table: 'rooms',
     filter: `id=eq.${state.roomId}`
-      }, (payload: { new: Room }) => {
+  }, (payload: { new: Room }) => {
         console.log('Room update received:', payload);
   const room = payload.new;
         // Если партия уже завершилась по правилам (нет ходов/фигур) — показуем финал всем
@@ -143,6 +144,39 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
   // Обновления по рематчу
   const deadline = room.rematch_until ? new Date(room.rematch_until).getTime() : null;
   setRematchDeadline(deadline);
+
+        // Если оба подтвердили и дедлайн не истёк — запускаем новую партию автоматически
+        try {
+          const bothAgreed = Boolean(room.rematch_white) && Boolean(room.rematch_black);
+          const notExpired = !room.rematch_until || new Date(room.rematch_until).getTime() > Date.now();
+          if (bothAgreed && notExpired && !rematchInProgressRef.current) {
+            rematchInProgressRef.current = true;
+            const initialBoard = GameLogic.getInitialBoard();
+            supabase
+              .from('rooms')
+              .update({
+                status: 'playing',
+                board_state: initialBoard,
+                turn: 'white',
+                rematch_white: false,
+                rematch_black: false,
+                rematch_until: null,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', state.roomId as string)
+              .then(() => {
+                // Локально переводим игру в playing немедленно
+                dispatch({ type: 'SET_ONLINE_STATE', payload: 'playing' });
+                dispatch({ type: 'SET_GAME_MODE', payload: 'online' });
+                dispatch({ type: 'SET_GAME_STATE', state: { board: initialBoard, currentPlayer: 'white', gameStatus: 'playing' } });
+                setRematchRequested(false);
+              })
+              .then(
+                () => { rematchInProgressRef.current = false; },
+                () => { rematchInProgressRef.current = false; }
+              );
+          }
+        } catch {}
       })
       .subscribe();
   setConnectionStatus('connected');
