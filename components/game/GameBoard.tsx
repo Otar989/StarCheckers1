@@ -536,7 +536,7 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
             {isAIThinking ? (
               <span className="flex items-center gap-2">
                 <div className="w-2.5 h-2.5 md:w-3 md:h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
-                Бот думает...
+                ИИ думает...
               </span>
             ) : (
               `Ход: ${state.currentPlayer === "white" ? "Белые" : "Черные"}`
