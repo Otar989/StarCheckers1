@@ -29,6 +29,10 @@ type TelegramUpdate = {
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || ""
 const SECRET_TOKEN = process.env.TELEGRAM_WEBHOOK_SECRET || ""
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || ""
+const WELCOME_MEDIA = process.env.TELEGRAM_WELCOME_MEDIA // e.g. "/welcome.gif" or full URL
+const WELCOME_MEDIA_TYPE = (process.env.TELEGRAM_WELCOME_MEDIA_TYPE || "animation").toLowerCase() as
+  | "animation"
+  | "photo"
 
 async function callTelegram(method: string, payload: unknown) {
   if (!BOT_TOKEN) throw new Error("TELEGRAM_BOT_TOKEN is not configured")
@@ -101,19 +105,37 @@ export async function POST(request: Request) {
         ],
       }
 
-      // Попробуем отправить GIF с подписью; если не получится — отправим фото-плейсхолдер
-      const gifUrl = `${appUrl}/welcome.gif`
+      // Формируем URL медиа. Если задан относительный путь (начинается с / или без схемы), подставляем домен приложения.
+      const defaultPath = "/welcome.gif"
+      const rawPath = WELCOME_MEDIA || defaultPath
+      const mediaUrl = rawPath.startsWith("http://") || rawPath.startsWith("https://")
+        ? rawPath
+        : `${appUrl}${rawPath.startsWith("/") ? "" : "/"}${rawPath}`
       const photoFallbackUrl = `${appUrl}/placeholder.jpg`
 
-      const animResp = await callTelegram("sendAnimation", {
-        chat_id: msg.chat.id,
-        animation: gifUrl,
-        caption: welcome,
-        parse_mode: "HTML",
-        reply_markup: replyMarkup,
-      }) as any
+      let ok = false
+      if (WELCOME_MEDIA_TYPE === "photo") {
+        const resp = (await callTelegram("sendPhoto", {
+          chat_id: msg.chat.id,
+          photo: mediaUrl,
+          caption: welcome,
+          parse_mode: "HTML",
+          reply_markup: replyMarkup,
+        })) as any
+        ok = !!resp?.ok
+      } else {
+        // По умолчанию пробуем отправить как анимацию (GIF/MP4). Если ошибка — фолбэк на фото.
+        const resp = (await callTelegram("sendAnimation", {
+          chat_id: msg.chat.id,
+          animation: mediaUrl,
+          caption: welcome,
+          parse_mode: "HTML",
+          reply_markup: replyMarkup,
+        })) as any
+        ok = !!resp?.ok
+      }
 
-      if (!animResp?.ok) {
+      if (!ok) {
         await callTelegram("sendPhoto", {
           chat_id: msg.chat.id,
           photo: photoFallbackUrl,
