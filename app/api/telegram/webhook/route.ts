@@ -69,37 +69,59 @@ export async function POST(request: Request) {
 
     const text = (msg.text || "").trim()
     if (text.startsWith("/start")) {
-      // Extract start payload if present: "/start payload"
-      const [, payload = ""] = text.split(/\s+/, 2)
+      // Extract start payload if present: "/start payload" (не выводим теперь в тексте)
       const name = msg.from?.first_name || msg.from?.username || "Игрок"
 
       // @ts-ignore - in Next.js runtime this may be NextRequest with nextUrl
       const origin = (request as any).nextUrl?.origin || ""
       const appUrl = buildAppUrl(origin)
 
-      let welcome = `Привет, ${name}!\n\nДобро пожаловать в StarCheckers — премиальные русские шашки для Telegram.`
-      if (payload) {
-        welcome += `\n\nПараметр запуска: ${payload}`
-      }
-      welcome += "\n\nНажмите кнопку ниже, чтобы открыть игру. Удачи!"
+      const welcome = [
+        `👋 Добро пожаловать в StarCheckers – премиум игру в шашки прямо в Telegram, ${name}!`,
+        "",
+        "✨ Здесь тебя ждёт:",
+        "• 🤖 Игра с умным ИИ – от лёгкого до сложного уровня.",
+        "• 👫 Локальная партия – играйте вдвоём на одном устройстве.",
+        "• 🌍 Онлайн-режим – брось вызов друзьям или новым соперникам.",
+        "• ⭐ Современный дизайн и плавный геймплей – максимум удовольствия от каждой партии.",
+        "",
+        "🎮 Начни игру уже сейчас и докажи, кто настоящий мастер шашек!",
+        "",
+        "👉 Нажми «Играть» и выбери режим.",
+      ].join("\n")
 
       const replyMarkup: any = {
         inline_keyboard: [
           [
             {
-              text: "Открыть игру",
+              text: "Играть",
               web_app: { url: appUrl },
             },
           ],
         ],
       }
 
-      await callTelegram("sendMessage", {
+      // Попробуем отправить GIF с подписью; если не получится — отправим фото-плейсхолдер
+      const gifUrl = `${appUrl}/welcome.gif`
+      const photoFallbackUrl = `${appUrl}/placeholder.jpg`
+
+      const animResp = await callTelegram("sendAnimation", {
         chat_id: msg.chat.id,
-        text: welcome,
+        animation: gifUrl,
+        caption: welcome,
         parse_mode: "HTML",
         reply_markup: replyMarkup,
-      })
+      }) as any
+
+      if (!animResp?.ok) {
+        await callTelegram("sendPhoto", {
+          chat_id: msg.chat.id,
+          photo: photoFallbackUrl,
+          caption: welcome,
+          parse_mode: "HTML",
+          reply_markup: replyMarkup,
+        })
+      }
     }
 
     // Always respond quickly to Telegram
