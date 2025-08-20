@@ -30,13 +30,15 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
 
   // Универсальная утилита ретраев
-  const withRetry = useCallback(async <T,>(fn: () => Promise<T>, tries = 3): Promise<T> => {
+  const withRetry = useCallback(async <T extends { error?: unknown }>(fn: () => Promise<T>, tries = 3): Promise<T> => {
     let lastErr: unknown;
     for (let i = 0; i < tries; i++) {
       try {
         // экспоненциальная задержка после первой ошибки
         if (i > 0) await new Promise(r => setTimeout(r, i === 1 ? 300 : 800));
-        return await fn();
+        const res = await fn();
+        if ((res as any)?.error) throw (res as any).error;
+        return res;
       } catch (e) {
         lastErr = e;
       }
