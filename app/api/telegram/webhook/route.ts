@@ -33,6 +33,7 @@ const WELCOME_MEDIA = process.env.TELEGRAM_WELCOME_MEDIA // e.g. "/2025-08-20 14
 const WELCOME_MEDIA_TYPE = (process.env.TELEGRAM_WELCOME_MEDIA_TYPE || "animation").toLowerCase() as
   | "animation"
   | "photo"
+  | "video"
 
 async function callTelegram(method: string, payload: unknown) {
   if (!BOT_TOKEN) throw new Error("TELEGRAM_BOT_TOKEN is not configured")
@@ -113,6 +114,8 @@ export async function POST(request: Request) {
         : `${appUrl}${rawPath.startsWith("/") ? "" : "/"}${rawPath}`
       // Encode to safely handle spaces/unicode in filenames
       const mediaUrl = encodeURI(mediaUrlRaw)
+      const lowerRaw = rawPath.toLowerCase()
+      const isMp4 = lowerRaw.endsWith(".mp4") || lowerRaw.endsWith(".m4v") || lowerRaw.endsWith(".mov")
       const photoFallbackUrl = `${appUrl}/placeholder.jpg`
 
   let ok = false
@@ -125,8 +128,43 @@ export async function POST(request: Request) {
           reply_markup: replyMarkup,
         })) as any
         ok = !!resp?.ok
+      } else if (WELCOME_MEDIA_TYPE === "video" || isMp4) {
+        // Для MP4 предпочтём sendVideo (особенно если с аудио)
+        const resp = (await callTelegram("sendVideo", {
+          chat_id: msg.chat.id,
+          video: mediaUrl,
+          caption: welcome,
+          parse_mode: "HTML",
+          reply_markup: replyMarkup,
+        })) as any
+        ok = !!resp?.ok
+
+        // Если видео не прошло (например, Telegram требует animation для mute h264), пробуем как анимацию
+        if (!ok) {
+          const retryAnim = (await callTelegram("sendAnimation", {
+            chat_id: msg.chat.id,
+            animation: mediaUrl,
+            caption: welcome,
+            parse_mode: "HTML",
+            reply_markup: replyMarkup,
+          })) as any
+          ok = !!retryAnim?.ok
+        }
+
+        // Если всё ещё не ок — пробуем запасной GIF из public
+        if (!ok) {
+          const fallbackAnim = encodeURI(`${appUrl}/welcome.gif`)
+          const retryGif = (await callTelegram("sendAnimation", {
+            chat_id: msg.chat.id,
+            animation: fallbackAnim,
+            caption: welcome,
+            parse_mode: "HTML",
+            reply_markup: replyMarkup,
+          })) as any
+          ok = !!retryGif?.ok
+        }
       } else {
-        // По умолчанию пробуем отправить как анимацию (MP4/GIF).
+        // По умолчанию пробуем отправить как анимацию (GIF/MP4 без звука)
         const resp = (await callTelegram("sendAnimation", {
           chat_id: msg.chat.id,
           animation: mediaUrl,
@@ -136,10 +174,8 @@ export async function POST(request: Request) {
         })) as any
         ok = !!resp?.ok
 
-        // Если основной медиа-файл недоступен (например, не лежит в public), пробуем запасной GIF.
         if (!ok) {
-          const fallbackAnimRaw = `${appUrl}/welcome.gif`
-          const fallbackAnim = encodeURI(fallbackAnimRaw)
+          const fallbackAnim = encodeURI(`${appUrl}/welcome.gif`)
           const retry = (await callTelegram("sendAnimation", {
             chat_id: msg.chat.id,
             animation: fallbackAnim,
