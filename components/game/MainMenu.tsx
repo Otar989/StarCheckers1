@@ -143,7 +143,7 @@ export function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps) {
         />
 
         {/* Floating particles */}
-        {Array.from({ length: 12 }).map((_, i) => (
+  {Array.from({ length: 12 }).map((_, i) => (
           <div
             key={i}
             className="absolute w-2 h-2 bg-white/20 rounded-full blur-sm"

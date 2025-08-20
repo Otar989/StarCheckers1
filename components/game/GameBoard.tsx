@@ -10,7 +10,7 @@ import { GameLogic } from "@/lib/game-logic"
 import { AIEngine } from "@/lib/ai-engine"
 import type { GameMode, Difficulty } from "@/app/page"
 type Position = { row: number; col: number }
-import { useEffect, useState, useCallback, useRef } from "react"
+import { useEffect, useState, useCallback, useRef, useMemo } from "react"
 import { useHeadToHead } from "@/hooks/use-head-to-head"
 import { RoomCodeToast } from "./RoomCodeToast"
 
@@ -343,16 +343,21 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
     hapticFeedback("medium")
   }
 
-  const isValidMoveSquare = (row: number, col: number) => {
+  const isValidMoveSquare = useCallback((row: number, col: number) => {
     const modelPos = toModel({ row, col })
     return state.validMoves.some((move) => move.row === modelPos.row && move.col === modelPos.col)
-  }
+  }, [state.validMoves, toModel])
 
-  const isSelectedSquare = (row: number, col: number) => {
+  const isSelectedSquare = useCallback((row: number, col: number) => {
     if (!state.selectedPiece) return false
     const displayPos = toDisplay(state.selectedPiece.position)
     return displayPos.row === row && displayPos.col === col
-  }
+  }, [state.selectedPiece, toDisplay])
+
+  // Единый обработчик клика по клетке, чтобы не создавать новые функции в каждой клетке
+  const onSquareClick = useCallback((r: number, c: number) => {
+    handleSquareClick(r, c)
+  }, [handleSquareClick])
 
   return (
     <>
@@ -403,7 +408,7 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
         />
 
         {/* Floating particles */}
-        {Array.from({ length: 12 }).map((_, i) => (
+  {Array.from({ length: 12 }).map((_, i) => (
           <div
             key={i}
             className="absolute w-2 h-2 bg-white/20 rounded-full blur-sm"
@@ -521,15 +526,15 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
                   Array.from({ length: 8 }, (_, c) => c).map((colIndex) => {
                     const model = toModel({ row: rowIndex, col: colIndex })
                     const piece = state.board[model.row][model.col]
-                    return (
+          return (
                       <BoardSquare
                         key={`${rowIndex}-${colIndex}`}
                         row={rowIndex}
                         col={colIndex}
                         piece={piece}
-                        isSelected={isSelectedSquare(rowIndex, colIndex)}
-                        isValidMove={isValidMoveSquare(rowIndex, colIndex)}
-                        onClick={() => handleSquareClick(rowIndex, colIndex)}
+            isSelected={isSelectedSquare(rowIndex, colIndex)}
+            isValidMove={isValidMoveSquare(rowIndex, colIndex)}
+            onClick={onSquareClick}
                         onDragStart={handleDragStart}
                         onDragOver={handleDragOver}
                         onDrop={handleDrop}

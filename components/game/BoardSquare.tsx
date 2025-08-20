@@ -1,10 +1,10 @@
 "use client"
-import { useState } from "react"
+import { memo, useState } from "react"
 import type React from "react"
 
 import { useTheme } from "@/hooks/use-theme"
 
-import type { Piece } from "./GameProvider"
+import type { Piece } from "@/types/game-types"
 
 interface BoardSquareProps {
   row: number
@@ -12,7 +12,7 @@ interface BoardSquareProps {
   piece: Piece | null
   isSelected: boolean
   isValidMove: boolean
-  onClick: () => void
+  onClick: (row: number, col: number) => void
   onSwipe?: (direction: "up" | "down" | "left" | "right") => void
   onDragStart?: (row: number, col: number) => void
   onDragOver?: (row: number, col: number) => void
@@ -25,7 +25,7 @@ interface BoardSquareProps {
   } | null
 }
 
-export function BoardSquare({
+function BoardSquareBase({
   row,
   col,
   piece,
@@ -47,7 +47,7 @@ export function BoardSquare({
 
   const handleTouch = (e: React.TouchEvent) => {
     e.preventDefault()
-    onClick()
+    onClick(row, col)
   }
 
   const getSquareColors = () => {
@@ -95,7 +95,7 @@ export function BoardSquare({
         ${isDragTarget ? "ring-4 ring-yellow-400/95 ring-inset shadow-2xl shadow-yellow-400/70 scale-110" : ""}
         ${isPressed ? "scale-95 shadow-inner" : "hover:scale-105 active:scale-95"}
       `}
-      onClick={onClick}
+  onClick={() => onClick(row, col)}
       onTouchEnd={handleTouch}
       onMouseDown={() => setIsPressed(true)}
       onMouseUp={() => setIsPressed(false)}
@@ -305,3 +305,15 @@ export function BoardSquare({
     </div>
   )
 }
+
+// Мемоизируем клетку: перерисовывается только при изменении значимых пропов
+export const BoardSquare = memo(BoardSquareBase, (prev, next) => {
+  return (
+    prev.piece === next.piece &&
+    prev.isSelected === next.isSelected &&
+    prev.isValidMove === next.isValidMove &&
+    prev.isDragTarget === next.isDragTarget &&
+    prev.row === next.row &&
+    prev.col === next.col
+  )
+})
