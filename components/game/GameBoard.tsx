@@ -21,7 +21,7 @@ interface GameBoardProps {
 }
 
 export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoardProps) {
-  const { state, dispatch, sendMove, leaveRoom, requestRematch, tryStartRematch, rematchDeadline, rematchRequested } = useGame()
+  const { state, dispatch, sendMove, leaveRoom, requestRematch, tryStartRematch, rematchDeadline, rematchRequested, connectionStatus } = useGame()
   const { playSound, initializeAudio } = useAudio()
   const { hapticFeedback, user, initData } = useTelegram()
   const { theme } = useTheme()
@@ -396,7 +396,7 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
           </p>
         </div>
 
-        {state.gameStatus !== 'playing' && (
+  {state.gameStatus !== 'playing' && (
           <button
             onClick={resetGame}
             className="liquid-glass-button flex items-center justify-center p-2 md:p-2.5 rounded-2xl transition-all duration-300 hover:scale-105 text-white/90"
@@ -483,6 +483,15 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
             )}
           </p>
         </div>
+
+        {state.gameMode === 'online' && (
+          <div className="liquid-glass inline-flex items-center gap-2 rounded-full px-2.5 py-1.5 md:px-3 md:py-2">
+            <span className={`w-2 h-2 rounded-full ${connectionStatus === 'connected' ? 'bg-emerald-400' : connectionStatus === 'connecting' ? 'bg-yellow-400' : 'bg-red-400'}`} />
+            <span className="text-[10px] md:text-xs text-white/70">
+              {connectionStatus === 'connected' ? 'Онлайн' : connectionStatus === 'connecting' ? 'Подключение…' : 'Оффлайн'}
+            </span>
+          </div>
+        )}
 
         {state.gameStatus !== "playing" && state.gameStatus !== "player-left" && (
           <div className="liquid-glass border rounded-full px-3 py-2 md:px-4 md:py-3 animate-pulse min-h-[40px] md:min-h-[48px] flex items-center justify-center">

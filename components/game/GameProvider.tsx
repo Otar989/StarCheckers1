@@ -196,6 +196,7 @@ const GameContext = createContext<{
   tryStartRematch?: () => Promise<void> | void;
   rematchDeadline?: number | null;
   rematchRequested?: boolean;
+  connectionStatus?: 'connecting' | 'connected' | 'disconnected';
 } | null>(null);
 
 export function GameProvider({ children }: { children: ReactNode }) {
@@ -230,6 +231,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     tryStartRematch,
     rematchDeadline,
     rematchRequested,
+  connectionStatus,
   } = useOnlineGame(dispatch, state);
 
   // Обёртка: если игрок сам выходит из онлайн-игры — засчитываем поражение
@@ -328,6 +330,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   tryStartRematch,
   rematchDeadline,
   rematchRequested,
+  connectionStatus,
       }}
     >
       {children}
