@@ -81,10 +81,14 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
         console.log('Room update received:', payload);
   const room = payload.new;
         
-        // Начало игры
+        // Начало игры — переводим состояние и синхронизируем доску/очередь
     if (room.status === 'playing' && state.onlineState === 'waiting') {
           console.log('Starting online game');
           dispatch({ type: 'START_ONLINE_GAME' });
+          dispatch({
+            type: 'SET_GAME_STATE',
+            state: { board: room.board_state, currentPlayer: room.turn }
+          });
         }
         
         // Выход противника
@@ -247,7 +251,7 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
 
       if (searchError) throw searchError;
 
-      if (searchingRooms && searchingRooms.length > 0) {
+  if (searchingRooms && searchingRooms.length > 0) {
         // Нашли существующую комнату, присоединяемся
         const room = searchingRooms[0];
         const playerColor = room.host_color === 'white' ? 'black' : 'white';
@@ -267,6 +271,8 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
         dispatch({ type: 'SET_ROOM_ID', payload: room.id });
         dispatch({ type: 'SET_PLAYER_COLOR', payload: playerColor });
         dispatch({ type: 'SET_ONLINE_STATE', payload: 'playing' });
+  // Синхронизируем доску и чей ход
+  dispatch({ type: 'SET_GAME_STATE', state: { board: room.board_state, currentPlayer: room.turn } });
         
       } else {
         // Не нашли комнату, создаем новую в статусе ожидания
