@@ -88,18 +88,12 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
     }
   }, [cleanupGame])
 
-  // Реагируем на закрытие страницы/скрытие вкладки
+  // Мягкая реакция на закрытие страницы: пробуем сообщить только при реальном закрытии
   useEffect(() => {
     const onBeforeUnload = () => { void performLeaveIfOnline() }
-    const onPageHide = () => { void performLeaveIfOnline() }
-    const onVisibility = () => { if (document.visibilityState === 'hidden') void performLeaveIfOnline() }
     window.addEventListener('beforeunload', onBeforeUnload)
-    window.addEventListener('pagehide', onPageHide)
-    document.addEventListener('visibilitychange', onVisibility)
     return () => {
       window.removeEventListener('beforeunload', onBeforeUnload)
-      window.removeEventListener('pagehide', onPageHide)
-      document.removeEventListener('visibilitychange', onVisibility)
     }
   }, [performLeaveIfOnline])
 
@@ -154,12 +148,16 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
   ])
 
   const handleSquareClick = async (row: number, col: number) => {
+    const isBot = state.gameMode === 'bot'
+    const isOnline = state.gameMode === 'online'
+    const onlineNotReady = isOnline && state.onlineState !== 'playing'
     if (
       isAIThinking ||
       isProcessingMove ||
       state.gameStatus !== "playing" ||
-      (mode === "bot" && state.currentPlayer === "black") ||
-      (mode === "online" && (!state.playerColor || state.currentPlayer !== state.playerColor))
+      (isBot && state.currentPlayer === "black") ||
+      onlineNotReady ||
+      (isOnline && (!state.playerColor || state.currentPlayer !== state.playerColor))
     ) {
       return
     }
