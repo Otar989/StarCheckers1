@@ -32,7 +32,7 @@ $$ language plpgsql security definer;
 -- Создаем триггер для обновления updated_at
 drop trigger if exists set_updated_at on public.rooms;
 create trigger set_updated_at
-  before update on public.rooms
+  before update or insert on public.rooms
   for each row
   execute procedure public.set_updated_at();
 
@@ -67,4 +67,11 @@ create policy "Anyone can view moves"
 create policy "Anyone can insert moves"
   on public.moves for insert
   to anon
+  with check (true);
+
+-- Разрешаем обновления записей ходов, если когда-нибудь понадобится (пермиссивно)
+create policy if not exists "Anyone can update moves"
+  on public.moves for update
+  to anon
+  using (true)
   with check (true);
