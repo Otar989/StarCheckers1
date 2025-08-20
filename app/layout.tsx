@@ -8,6 +8,7 @@ import "./globals.css"
 export const viewport = {
   width: "device-width",
   initialScale: 1,
+  viewportFit: "cover" as const,
 }
 
 export const themeColor = "#000000"
@@ -45,6 +46,19 @@ export default function RootLayout({
                 window.Telegram.WebApp.expand();
                 window.Telegram.WebApp.enableClosingConfirmation();
               }
+
+              // Robust viewport height handling for iOS/Telegram WebView
+              (function() {
+                const setVh = () => {
+                  const vh = window.innerHeight;
+                  document.documentElement.style.setProperty('--app-vh', vh + 'px');
+                };
+                setVh();
+                window.addEventListener('resize', setVh);
+                if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.onEvent) {
+                  window.Telegram.WebApp.onEvent('viewportChanged', setVh);
+                }
+              })();
             `,
           }}
         />
@@ -55,25 +69,14 @@ html {
   --font-mono: ${GeistMono.variable};
 }
 
-/* Telegram Mini App safe areas */
-body {
-  padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
-}
-
-/* Prevent overscroll on iOS */
-body {
-  overscroll-behavior: none;
-  -webkit-overflow-scrolling: touch;
-}
+/* Safe-area и overscroll настраиваются в globals.css */
 
 /* Telegram WebApp specific styles */
 .telegram-webapp {
-  height: 100vh;
-  height: 100dvh;
+  /* Высота равна видимой области; safe-area уже учтены паддингами body */
+  height: var(--app-vh, 100svh);
   overflow: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Theme transition */
