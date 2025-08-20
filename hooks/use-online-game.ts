@@ -27,6 +27,22 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
   const [isLoading, setIsLoading] = useState(false);
   const [rematchDeadline, setRematchDeadline] = useState<number | null>(null);
   const [rematchRequested, setRematchRequested] = useState<boolean>(false);
+  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
+
+  // Универсальная утилита ретраев
+  const withRetry = useCallback(async <T,>(fn: () => Promise<T>, tries = 3): Promise<T> => {
+    let lastErr: unknown;
+    for (let i = 0; i < tries; i++) {
+      try {
+        // экспоненциальная задержка после первой ошибки
+        if (i > 0) await new Promise(r => setTimeout(r, i === 1 ? 300 : 800));
+        return await fn();
+      } catch (e) {
+        lastErr = e;
+      }
+    }
+    throw lastErr as Error;
+  }, []);
   const connectToRoom = useCallback(async (roomId: string) => {
     console.log('Connecting to room:', roomId);
     
@@ -70,6 +86,7 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
     if (!state.roomId) return;
 
     console.log('Setting up room subscription:', state.roomId);
+  setConnectionStatus('connecting');
   // Subscribe to room changes
   const roomChannel = supabase.channel(`room:${state.roomId}`)
       .on('postgres_changes' as any, {
@@ -114,6 +131,7 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
   setRematchDeadline(deadline);
       })
       .subscribe();
+  setConnectionStatus('connected');
 
     // Subscribe to moves
   const movesChannel = supabase.channel(`moves:${state.roomId}`)
@@ -131,6 +149,7 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
     return () => {
       roomChannel.unsubscribe();
       movesChannel.unsubscribe();
+  setConnectionStatus('disconnected');
     };
   }, [state.roomId, state.playerColor, state.currentPlayer, state.gameStatus, state.onlineState, dispatch]);
 
@@ -217,6 +236,35 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
     }, 2000);
     return () => { cancelled = true; clearInterval(interval); };
   }, [state.roomId, state.onlineState, dispatch]);
+
+  // Фоновый пинг комнаты во время игры: поддерживаем connected/auto-recover
+  useEffect(() => {
+    if (!state.roomId || state.onlineState !== 'playing') return;
+    let cancelled = false;
+    let failures = 0;
+    const interval = setInterval(async () => {
+      try {
+        const { data: room } = await supabase
+          .from('rooms')
+          .select('*')
+          .eq('id', state.roomId as string)
+          .single();
+        if (cancelled) return;
+        setConnectionStatus('connected');
+        failures = 0;
+        if (room) {
+          // Если по какой-то причине подписка не донесла обновление, синхронизируемся
+          if (room.turn === state.playerColor) {
+            dispatch({ type: 'SET_GAME_STATE', state: { board: room.board_state, currentPlayer: room.turn } });
+          }
+        }
+      } catch {
+        failures++;
+        if (failures >= 2) setConnectionStatus('disconnected');
+      }
+    }, 4000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [state.roomId, state.onlineState, state.playerColor, dispatch]);
 
   // Периодическая очистка старых комнат
   useEffect(() => {
@@ -419,25 +467,26 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
         throw new Error('Недопустимый ход');
       }
 
-      // Сначала записываем ход
-      const { error: moveError } = await supabase
-        .from('moves')
-        .insert({
-          room_id: state.roomId,
-          move
-        });
+      // Сначала записываем ход (с ретраями)
+      const { error: moveError } = await withRetry(async () => {
+        return await supabase
+          .from('moves')
+          .insert({ room_id: state.roomId as string, move });
+      }, 3);
 
       if (moveError) throw moveError;
 
-  // Затем обновляем состояние комнаты
-      const { error: roomError } = await supabase
-        .from('rooms')
-        .update({
-          board_state: moveResult.newState.board,
-          turn: moveResult.newState.currentPlayer,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', state.roomId);
+      // Затем обновляем состояние комнаты (с ретраями)
+      const { error: roomError } = await withRetry(async () => {
+        return await supabase
+          .from('rooms')
+          .update({
+            board_state: moveResult.newState!.board,
+            turn: moveResult.newState!.currentPlayer,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', state.roomId as string);
+      }, 3);
 
       if (roomError) throw roomError;
 
@@ -446,8 +495,9 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
 
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: 'Не удалось выполнить ход' });
+      setConnectionStatus('disconnected');
     }
-  }, [state.roomId, state.board, state.playerColor, state.currentPlayer, dispatch]);
+  }, [state.roomId, state.board, state.playerColor, state.currentPlayer, dispatch, withRetry]);
 
   return {
     createRoom,
@@ -461,6 +511,7 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
   cancelRematch,
   tryStartRematch,
   rematchDeadline,
-  rematchRequested
+  rematchRequested,
+  connectionStatus
   };
 }
