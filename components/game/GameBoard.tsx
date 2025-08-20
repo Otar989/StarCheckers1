@@ -11,6 +11,7 @@ import { AIEngine } from "@/lib/ai-engine"
 import type { GameMode, Difficulty } from "@/app/page"
 type Position = { row: number; col: number }
 import { useEffect, useState, useCallback, useRef } from "react"
+import { useHeadToHead } from "@/hooks/use-head-to-head"
 import { RoomCodeToast } from "./RoomCodeToast"
 
 interface GameBoardProps {
@@ -32,6 +33,7 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
   const [joinError, setJoinError] = useState<string | null>(null)
   const cleanupRef = useRef(false)
   const [remaining, setRemaining] = useState<number>(60)
+  const { score, recordYouWin, recordOppWin, recordDraw } = useHeadToHead(state.roomId)
 
   // Онлайн: показываем свою сторону снизу. Если игрок чёрный — визуально переворачиваем поле.
   const isFlipped = state.gameMode === 'online' && state.playerColor === 'black'
@@ -62,6 +64,22 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
   // Подключение к онлайн-игре теперь полностью обрабатывается через GameProvider/use-online-game.
 
   // Поп‑ап завершения партии отображается ниже; отдельный баннер «Opponent disconnected» удалён
+  // Обновляем H2H после завершения партии
+  useEffect(() => {
+    if (state.gameMode !== 'online') return
+    if (state.gameStatus === 'white-wins') {
+      if (state.playerColor === 'white') recordYouWin(); else recordOppWin();
+    } else if (state.gameStatus === 'black-wins') {
+      if (state.playerColor === 'black') recordYouWin(); else recordOppWin();
+    } else if (state.gameStatus === 'draw') {
+      recordDraw();
+    }
+    // player-left считаем победой оставшегося игрока
+    if (state.gameStatus === 'player-left') {
+      recordYouWin();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.gameStatus])
 
   const cleanupGame = useCallback(() => {
     if (cleanupRef.current) return
@@ -482,6 +500,27 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
       </div>
 
       <div className="text-center space-y-2 md:space-y-3 px-1 md:px-2 pb-1 md:pb-2 relative z-10">
+        {state.gameMode === 'online' && (
+          <div className="liquid-glass rounded-xl px-4 py-2 md:px-5 md:py-3 inline-flex items-center gap-4">
+            <div className="text-xs md:text-sm text-white/70">Серия</div>
+            <div className="flex items-center gap-3">
+              <div className="text-center">
+                <div className="text-[10px] md:text-xs text-white/50">Вы</div>
+                <div className="text-sm md:text-base font-bold">{score.you}</div>
+              </div>
+              <div className="text-white/40">:</div>
+              <div className="text-center">
+                <div className="text-[10px] md:text-xs text-white/50">Соперник</div>
+                <div className="text-sm md:text-base font-bold">{score.opp}</div>
+              </div>
+              <div className="text-white/40">•</div>
+              <div className="text-center">
+                <div className="text-[10px] md:text-xs text-white/50">Ничьи</div>
+                <div className="text-sm md:text-base font-bold">{score.draws}</div>
+              </div>
+            </div>
+          </div>
+        )}
         <div className="liquid-glass inline-flex items-center gap-2 md:gap-3 rounded-full px-3 py-2 md:px-4 md:py-3 min-h-[40px] md:min-h-[48px] min-w-[140px] md:min-w-[160px] justify-center">
           <div
             className={`w-2.5 h-2.5 md:w-3 md:h-3 rounded-full flex-shrink-0 shadow-lg ${
