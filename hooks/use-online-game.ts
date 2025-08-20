@@ -166,10 +166,19 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
           setRematchRequested(false);
         }
         
-        // Выход противника
-    if (room.status === 'finished' && state.gameStatus === 'playing') {
-          console.log('Opponent left the game');
-          dispatch({ type: 'OPPONENT_LEFT' });
+        // Комната завершена: или естественный финал (нет ходов/фигур), или выход соперника
+        if (room.status === 'finished') {
+          try {
+            const statusNow = GameLogic.evaluateStatus(room.board_state as any, room.turn);
+            if (statusNow !== 'playing') {
+              dispatch({ type: 'SET_GAME_STATE', state: { board: room.board_state, currentPlayer: room.turn, gameStatus: statusNow } });
+            } else if (state.gameStatus === 'playing') {
+              console.log('Opponent left the game');
+              dispatch({ type: 'OPPONENT_LEFT' });
+            }
+          } catch {
+            if (state.gameStatus === 'playing') dispatch({ type: 'OPPONENT_LEFT' });
+          }
           return;
         }
 
@@ -599,13 +608,15 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
 
       if (moveError) throw moveError;
 
-      // Затем обновляем состояние комнаты (с ретраями)
+  // Затем обновляем состояние комнаты (с ретраями)
+  const isTerminal = moveResult.newState!.gameStatus && moveResult.newState!.gameStatus !== 'playing';
       const { error: roomError } = await withRetry(async () => {
         return await supabase
           .from('rooms')
           .update({
             board_state: moveResult.newState!.board,
             turn: moveResult.newState!.currentPlayer,
+    ...(isTerminal ? { status: 'finished' as const } : {}),
             updated_at: new Date().toISOString()
           })
           .eq('id', state.roomId as string);
