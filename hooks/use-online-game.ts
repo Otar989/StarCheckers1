@@ -326,7 +326,6 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
   dispatch({ type: 'SET_PLAYER_COLOR', payload: playerColor });
   dispatch({ type: 'SET_LOBBY_STATUS', payload: 'waiting' });
   dispatch({ type: 'SET_ONLINE_STATE', payload: 'waiting' });
-
   // Инициализируем начальное состояние (белые начинают)
   dispatch({ type: 'SET_GAME_STATE', state: { board: initialBoard, currentPlayer: 'white' } });
 
@@ -403,7 +402,15 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
   }, [state.roomId, dispatch]);
 
   const sendMove = useCallback(async (move: Move) => {
-    if (!state.roomId || !state.playerColor || state.playerColor !== state.currentPlayer) return;
+    if (!state.roomId) return;
+    if (!state.playerColor) {
+      dispatch({ type: 'SET_ERROR', payload: 'Ожидание назначения цвета игрока' });
+      return;
+    }
+    if (state.playerColor !== state.currentPlayer) {
+      dispatch({ type: 'SET_ERROR', payload: 'Сейчас ход соперника' });
+      return;
+    }
 
     try {
       // Проверяем валидность хода

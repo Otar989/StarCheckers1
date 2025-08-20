@@ -163,16 +163,14 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       };
 
     case 'MAKE_LOCAL_MOVE': {
-      if (state.gameMode === 'online') {
-        const move = action.payload;
-        const moveResult = GameLogic.makeMove(state.board, move.from, move.to);
-        if (moveResult.success && moveResult.newState) {
-          return {
-            ...state,
-            ...moveResult.newState,
-            moveHistory: [...state.moveHistory, move],
-          };
-        }
+      const move = action.payload;
+      const moveResult = GameLogic.makeMove(state.board, move.from, move.to);
+      if (moveResult.success && moveResult.newState) {
+        return {
+          ...state,
+          ...moveResult.newState,
+          moveHistory: [...state.moveHistory, move],
+        };
       }
       return state;
     }
