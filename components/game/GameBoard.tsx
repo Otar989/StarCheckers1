@@ -410,7 +410,17 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
   {/* Верхняя панель убрана, чтобы не конфликтовать с системными элементами Telegram. Контролы перенесены вниз. */}
 
       {/* Инфоблок, как был снизу, теперь над доской */}
-      <div className="w-full flex items-center justify-center px-1 md:px-2 mt-1 mb-2 md:mb-3">
+      <div className="w-full flex items-center justify-between px-1 md:px-2 mt-1 mb-2 md:mb-3 z-20">
+        {/* Кнопка Меню (стрелка) слева, интерактивная */}
+        <button
+          onClick={handleBackToMenuClick}
+          aria-label="Меню"
+          title="Меню"
+          className="liquid-glass-button flex items-center justify-center p-2 md:p-2.5 rounded-2xl transition-all duration-300 hover:scale-105 active:scale-95 text-white/90 shadow-black/20"
+        >
+          <ArrowLeft className="w-4 h-4" />
+        </button>
+
         <div className="liquid-glass text-center rounded-2xl px-3 py-2 md:px-4 md:py-2.5 mx-auto">
           <h2 className="font-bold text-sm bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
             StarCheckers
@@ -421,6 +431,9 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
             {mode === "online" && "Онлайн"}
           </p>
         </div>
+
+        {/* Плейсхолдер справа для сохранения центровки инфоблока */}
+        <div className="w-[36px] md:w-[40px]" />
       </div>
 
       <div className="flex-1 flex items-center justify-center px-1 md:px-2">
@@ -487,13 +500,8 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
       <div className="text-center space-y-2 md:space-y-3 px-1 md:px-2 pb-1 md:pb-2 relative z-10">
         {/* Панель управления под доской */}
         <div className="flex items-center justify-between gap-2 mb-1 md:mb-2">
-          <button
-            onClick={handleBackToMenuClick}
-            className="liquid-glass-button flex items-center gap-2 px-3 py-2 md:px-4 md:py-2.5 rounded-2xl transition-all duration-300 hover:scale-105 text-white/90 shadow-black/20"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="font-medium text-sm">Меню</span>
-          </button>
+          {/* Кнопка меню перенесена вверх — оставляем плейсхолдер для баланса */}
+          <div className="w-[36px] md:w-[40px]" />
 
           <div className="w-[36px] md:w-[40px]" />
 
