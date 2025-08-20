@@ -31,7 +31,6 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
   const [showRoomCode, setShowRoomCode] = useState(false)
   const [joinError, setJoinError] = useState<string | null>(null)
   const cleanupRef = useRef(false)
-  const leavingRef = useRef(false)
   const [remaining, setRemaining] = useState<number>(60)
 
   // Таймер для окна рематча
@@ -55,22 +54,11 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
 
   // Поп‑ап завершения партии отображается ниже; отдельный баннер «Opponent disconnected» удалён
 
-  const performLeaveIfOnline = useCallback(async () => {
-    if (leavingRef.current) return
-    if (state.gameMode === 'online' && state.roomId) {
-      leavingRef.current = true
-      try { await leaveRoom(); } catch {}
-    }
-  }, [leaveRoom, state.gameMode, state.roomId])
-
   const cleanupGame = useCallback(() => {
     if (cleanupRef.current) return
     cleanupRef.current = true
 
   // Очистку онлайна выполняет GameProvider; здесь ничего не отправляем по сокетам.
-
-    // Сообщаем серверу о выходе
-    void performLeaveIfOnline()
 
     dispatch({
       type: "RESET_GAME",
@@ -80,7 +68,7 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
       type: "SET_GAME_STATE",
       state: { roomId: null, playerColor: null, opponentColor: null },
     })
-  }, [dispatch, mode, performLeaveIfOnline])
+  }, [dispatch, mode])
 
   useEffect(() => {
     return () => {
@@ -88,14 +76,7 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
     }
   }, [cleanupGame])
 
-  // Мягкая реакция на закрытие страницы: пробуем сообщить только при реальном закрытии
-  useEffect(() => {
-    const onBeforeUnload = () => { void performLeaveIfOnline() }
-    window.addEventListener('beforeunload', onBeforeUnload)
-    return () => {
-      window.removeEventListener('beforeunload', onBeforeUnload)
-    }
-  }, [performLeaveIfOnline])
+  // Не вызываем leaveRoom автоматически, только по кнопке Меню
 
   useEffect(() => {
     if (
@@ -273,7 +254,9 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
   }
 
   const handleBackToMenuClick = async () => {
-    await performLeaveIfOnline()
+    if (state.gameMode === 'online' && state.roomId) {
+      try { await leaveRoom() } catch {}
+    }
     cleanupGame()
     onBackToMenu()
   }
