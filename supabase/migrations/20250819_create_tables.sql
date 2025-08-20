@@ -69,9 +69,19 @@ create policy "Anyone can insert moves"
   to anon
   with check (true);
 
--- Разрешаем обновления записей ходов, если когда-нибудь понадобится (пермиссивно)
-create policy if not exists "Anyone can update moves"
-  on public.moves for update
-  to anon
-  using (true)
-  with check (true);
+-- Разрешаем обновления записей ходов (опционально): создаём политику, если её ещё нет
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and tablename = 'moves'
+      and policyname = 'Anyone can update moves'
+  ) then
+    execute $$create policy "Anyone can update moves"
+      on public.moves for update
+      to anon
+      using (true)
+      with check (true)$$;
+  end if;
+end$$;
