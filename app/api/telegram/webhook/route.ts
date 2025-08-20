@@ -2,6 +2,7 @@
 // This endpoint should be configured as the bot webhook URL in BotFather or via the provided set-webhook route.
 import fs from "node:fs/promises"
 import path from "node:path"
+export const runtime = "nodejs"
 
 type TelegramUser = {
   id: number
@@ -31,7 +32,7 @@ type TelegramUpdate = {
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || ""
 const SECRET_TOKEN = process.env.TELEGRAM_WEBHOOK_SECRET || ""
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || ""
-const WELCOME_MEDIA = process.env.TELEGRAM_WELCOME_MEDIA // e.g. "/2025-08-20 14.36.17.mp4" or full URL
+const WELCOME_MEDIA = process.env.TELEGRAM_WELCOME_MEDIA // e.g. "/20250820_1340_Vibrant Checkers Animation_simple_compose_01k33h172wez8t29dg17ht1j00.mp4" or full URL
 const WELCOME_MEDIA_TYPE = (process.env.TELEGRAM_WELCOME_MEDIA_TYPE || "animation").toLowerCase() as
   | "animation"
   | "photo"
@@ -147,7 +148,7 @@ export async function POST(request: Request) {
       }
 
       // Формируем URL медиа. Если задан относительный путь (начинается с / или без схемы), подставляем домен приложения.
-  const defaultPath = "/2025-08-20 14.36.17.mp4"
+  const defaultPath = "/20250820_1340_Vibrant Checkers Animation_simple_compose_01k33h172wez8t29dg17ht1j00.mp4"
       const rawPath = WELCOME_MEDIA || defaultPath
       const mediaUrlRaw = rawPath.startsWith("http://") || rawPath.startsWith("https://")
         ? rawPath
@@ -168,7 +169,42 @@ export async function POST(request: Request) {
           reply_markup: replyMarkup,
         })) as any
         ok = !!resp?.ok
-      } else if (WELCOME_MEDIA_TYPE === "video" || isMp4) {
+      } else if (WELCOME_MEDIA_TYPE === "animation") {
+        // Предпочитаем отправку как анимацию, даже если это mp4
+        // 1) Локальная загрузка в Telegram
+        ok = await trySendLocalVideo(
+          msg.chat.id,
+          rawPath,
+          welcome,
+          replyMarkup,
+          "animation",
+          isMp4 ? "video/mp4" : "image/gif"
+        )
+
+        // 2) URL как анимация
+        if (!ok) {
+          const retryAnim = (await callTelegram("sendAnimation", {
+            chat_id: msg.chat.id,
+            animation: mediaUrl,
+            caption: welcome,
+            parse_mode: "HTML",
+            reply_markup: replyMarkup,
+          })) as any
+          ok = !!retryAnim?.ok
+        }
+
+        // 3) Попытка как видео (иногда Telegram лучше принимает mp4 как video)
+        if (!ok && isMp4) {
+          const asVideo = (await callTelegram("sendVideo", {
+            chat_id: msg.chat.id,
+            video: mediaUrl,
+            caption: welcome,
+            parse_mode: "HTML",
+            reply_markup: replyMarkup,
+          })) as any
+          ok = !!asVideo?.ok
+        }
+      } else if (WELCOME_MEDIA_TYPE === "video" || (!WELCOME_MEDIA_TYPE && isMp4)) {
         // 1) Сначала пробуем загрузить локально из public напрямую в Telegram (надежнее, не зависит от внешнего URL)
         ok = await trySendLocalVideo(msg.chat.id, rawPath, welcome, replyMarkup, "video", "video/mp4")
 
@@ -212,7 +248,7 @@ export async function POST(request: Request) {
           })) as any
           ok = !!retryGif?.ok
         }
-      } else {
+  } else {
         // По умолчанию пробуем отправить как анимацию (GIF/MP4 без звука)
         const resp = (await callTelegram("sendAnimation", {
           chat_id: msg.chat.id,
