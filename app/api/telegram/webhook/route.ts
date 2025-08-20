@@ -1,5 +1,7 @@
 // Telegram webhook handler: replies with a welcome message on /start
 // This endpoint should be configured as the bot webhook URL in BotFather or via the provided set-webhook route.
+import fs from "node:fs/promises"
+import path from "node:path"
 
 type TelegramUser = {
   id: number
@@ -43,6 +45,44 @@ async function callTelegram(method: string, payload: unknown) {
     body: JSON.stringify(payload),
   })
   return res.json()
+}
+
+async function callTelegramMultipart(method: string, formData: FormData) {
+  if (!BOT_TOKEN) throw new Error("TELEGRAM_BOT_TOKEN is not configured")
+  const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/${method}`, {
+    method: "POST",
+    body: formData,
+  })
+  return res.json()
+}
+
+async function trySendLocalVideo(
+  chatId: number,
+  relativePath: string,
+  caption: string,
+  replyMarkup: any,
+  field: "video" | "animation" = "video",
+  mime: string = "video/mp4"
+): Promise<boolean> {
+  try {
+    // works only for files under public/
+    if (!relativePath.startsWith("/")) return false
+    const fileAbs = path.join(process.cwd(), "public", relativePath.slice(1))
+    const buf = await fs.readFile(fileAbs)
+    const fileName = path.basename(fileAbs) || (field === "video" ? "welcome.mp4" : "welcome.gif")
+    const form = new FormData()
+    form.append("chat_id", String(chatId))
+    form.append("caption", caption)
+    form.append("parse_mode", "HTML")
+    form.append("reply_markup", JSON.stringify(replyMarkup))
+  const blob = new Blob([new Uint8Array(buf)], { type: mime })
+    form.append(field, blob, fileName)
+    const method = field === "video" ? "sendVideo" : "sendAnimation"
+    const resp = (await callTelegramMultipart(method, form)) as any
+    return !!resp?.ok
+  } catch {
+    return false
+  }
 }
 
 function buildAppUrl(origin: string): string {
@@ -129,29 +169,38 @@ export async function POST(request: Request) {
         })) as any
         ok = !!resp?.ok
       } else if (WELCOME_MEDIA_TYPE === "video" || isMp4) {
-        // Для MP4 предпочтём sendVideo (особенно если с аудио)
-        const resp = (await callTelegram("sendVideo", {
-          chat_id: msg.chat.id,
-          video: mediaUrl,
-          caption: welcome,
-          parse_mode: "HTML",
-          reply_markup: replyMarkup,
-        })) as any
-        ok = !!resp?.ok
+        // 1) Сначала пробуем загрузить локально из public напрямую в Telegram (надежнее, не зависит от внешнего URL)
+        ok = await trySendLocalVideo(msg.chat.id, rawPath, welcome, replyMarkup, "video", "video/mp4")
 
-        // Если видео не прошло (например, Telegram требует animation для mute h264), пробуем как анимацию
+        // 2) Если не получилось — пробуем по URL как видео
         if (!ok) {
-          const retryAnim = (await callTelegram("sendAnimation", {
+          const resp = (await callTelegram("sendVideo", {
             chat_id: msg.chat.id,
-            animation: mediaUrl,
+            video: mediaUrl,
             caption: welcome,
             parse_mode: "HTML",
             reply_markup: replyMarkup,
           })) as any
-          ok = !!retryAnim?.ok
+          ok = !!resp?.ok
         }
 
-        // Если всё ещё не ок — пробуем запасной GIF из public
+        // 3) Если видео не прошло — пробуем как анимацию
+        if (!ok) {
+          // Сначала локальная загрузка, затем URL
+          ok = await trySendLocalVideo(msg.chat.id, rawPath, welcome, replyMarkup, "animation", isMp4 ? "video/mp4" : "image/gif")
+          if (!ok) {
+            const retryAnim = (await callTelegram("sendAnimation", {
+              chat_id: msg.chat.id,
+              animation: mediaUrl,
+              caption: welcome,
+              parse_mode: "HTML",
+              reply_markup: replyMarkup,
+            })) as any
+            ok = !!retryAnim?.ok
+          }
+        }
+
+        // 4) Если всё ещё не ок — пробуем запасной GIF из public
         if (!ok) {
           const fallbackAnim = encodeURI(`${appUrl}/welcome.gif`)
           const retryGif = (await callTelegram("sendAnimation", {
