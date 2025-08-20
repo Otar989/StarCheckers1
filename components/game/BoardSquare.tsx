@@ -1,5 +1,5 @@
 "use client"
-import { memo, useState } from "react"
+import { useState } from "react"
 import type React from "react"
 
 import { useTheme } from "@/hooks/use-theme"
@@ -12,7 +12,7 @@ interface BoardSquareProps {
   piece: Piece | null
   isSelected: boolean
   isValidMove: boolean
-  onClick: (row: number, col: number) => void
+  onClick: () => void
   onSwipe?: (direction: "up" | "down" | "left" | "right") => void
   onDragStart?: (row: number, col: number) => void
   onDragOver?: (row: number, col: number) => void
@@ -25,7 +25,7 @@ interface BoardSquareProps {
   } | null
 }
 
-function BoardSquareBase({
+export function BoardSquare({
   row,
   col,
   piece,
@@ -47,7 +47,7 @@ function BoardSquareBase({
 
   const handleTouch = (e: React.TouchEvent) => {
     e.preventDefault()
-    onClick(row, col)
+    onClick()
   }
 
   const getSquareColors = () => {
@@ -95,7 +95,7 @@ function BoardSquareBase({
         ${isDragTarget ? "ring-4 ring-yellow-400/95 ring-inset shadow-2xl shadow-yellow-400/70 scale-110" : ""}
         ${isPressed ? "scale-95 shadow-inner" : "hover:scale-105 active:scale-95"}
       `}
-  onClick={() => onClick(row, col)}
+  onClick={onClick}
       onTouchEnd={handleTouch}
       onMouseDown={() => setIsPressed(true)}
       onMouseUp={() => setIsPressed(false)}
@@ -305,15 +305,3 @@ function BoardSquareBase({
     </div>
   )
 }
-
-// Мемоизируем клетку: перерисовывается только при изменении значимых пропов
-export const BoardSquare = memo(BoardSquareBase, (prev, next) => {
-  return (
-    prev.piece === next.piece &&
-    prev.isSelected === next.isSelected &&
-    prev.isValidMove === next.isValidMove &&
-    prev.isDragTarget === next.isDragTarget &&
-    prev.row === next.row &&
-    prev.col === next.col
-  )
-})
