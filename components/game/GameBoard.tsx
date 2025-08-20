@@ -407,36 +407,7 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
         </div>
       )}
 
-      <div className="flex items-center justify-between mb-2 md:mb-4 relative z-10">
-        <button
-          onClick={handleBackToMenuClick}
-          className="liquid-glass-button flex items-center gap-2 px-3 py-2 md:px-4 md:py-2.5 rounded-2xl transition-all duration-300 hover:scale-105 text-white/90 shadow-black/20"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span className="font-medium text-sm">Меню</span>
-        </button>
-
-        <div className="liquid-glass text-center rounded-2xl px-3 py-2 md:px-4 md:py-2.5">
-          <h2 className="font-bold text-sm bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-            StarCheckers
-          </h2>
-          <p className="text-xs text-white/60">
-            {mode === "bot" &&
-              `ИИ (${difficulty === "easy" ? "Легко" : difficulty === "medium" ? "Средне" : "Сложно"})`}
-            {mode === "local" && "Локальная игра"}
-            {mode === "online" && "Онлайн"}
-          </p>
-        </div>
-
-  {state.gameStatus !== 'playing' && (
-          <button
-            onClick={resetGame}
-            className="liquid-glass-button flex items-center justify-center p-2 md:p-2.5 rounded-2xl transition-all duration-300 hover:scale-105 text-white/90"
-          >
-            <RotateCcw className="w-4 h-4" />
-          </button>
-        )}
-      </div>
+  {/* Верхняя панель убрана, чтобы не конфликтовать с системными элементами Telegram. Контролы перенесены вниз. */}
 
       <div className="flex-1 flex items-center justify-center px-1 md:px-2">
         <div
@@ -500,6 +471,38 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
       </div>
 
       <div className="text-center space-y-2 md:space-y-3 px-1 md:px-2 pb-1 md:pb-2 relative z-10">
+        {/* Панель управления под доской */}
+        <div className="flex items-center justify-between gap-2 mb-1 md:mb-2">
+          <button
+            onClick={handleBackToMenuClick}
+            className="liquid-glass-button flex items-center gap-2 px-3 py-2 md:px-4 md:py-2.5 rounded-2xl transition-all duration-300 hover:scale-105 text-white/90 shadow-black/20"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="font-medium text-sm">Меню</span>
+          </button>
+
+          <div className="liquid-glass text-center rounded-2xl px-3 py-2 md:px-4 md:py-2.5 mx-auto">
+            <h2 className="font-bold text-sm bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+              StarCheckers
+            </h2>
+            <p className="text-xs text-white/60">
+              {mode === "bot" && `ИИ (${difficulty === "easy" ? "Легко" : difficulty === "medium" ? "Средне" : "Сложно"})`}
+              {mode === "local" && "Локальная игра"}
+              {mode === "online" && "Онлайн"}
+            </p>
+          </div>
+
+          {state.gameStatus !== 'playing' ? (
+            <button
+              onClick={resetGame}
+              className="liquid-glass-button flex items-center justify-center p-2 md:p-2.5 rounded-2xl transition-all duration-300 hover:scale-105 text-white/90"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </button>
+          ) : (
+            <div className="w-[36px] md:w-[40px]" />
+          )}
+        </div>
         {state.gameMode === 'online' && (
           <div className="liquid-glass rounded-xl px-4 py-2 md:px-5 md:py-3 inline-flex items-center gap-4">
             <div className="text-xs md:text-sm text-white/70">Серия</div>
