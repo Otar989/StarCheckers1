@@ -155,6 +155,50 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
     };
   }, [state.roomId, state.playerColor, state.currentPlayer, state.gameStatus, state.onlineState, dispatch]);
 
+  // Presence: мгновенно реагируем, если соперник закрыл игру/ушёл
+  useEffect(() => {
+    if (!state.roomId || state.gameMode !== 'online') return;
+    const key = state.playerColor || 'unknown';
+    let leftTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const presenceChannel = supabase.channel(`presence:${state.roomId}`, {
+      config: { presence: { key } }
+    });
+
+    presenceChannel
+      .on('presence', { event: 'sync' }, () => {
+        try {
+          const presence = (presenceChannel as any).presenceState?.() || {};
+          const participants = Object.keys(presence).length;
+          // В бою оба должны быть в presence; если остаётся один — соперник ушёл
+          if (state.onlineState === 'playing' && participants === 1) {
+            if (!leftTimer) {
+              leftTimer = setTimeout(() => {
+                // Повторная проверка после небольшой задержки
+                const again = (presenceChannel as any).presenceState?.() || {};
+                const count = Object.keys(again).length;
+                if (count === 1 && state.gameStatus === 'playing') {
+                  dispatch({ type: 'OPPONENT_LEFT' });
+                }
+              }, 1500);
+            }
+          } else {
+            if (leftTimer) { clearTimeout(leftTimer); leftTimer = null; }
+          }
+        } catch {}
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          try { await presenceChannel.track({ at: Date.now() }); } catch {}
+        }
+      });
+
+    return () => {
+      if (leftTimer) clearTimeout(leftTimer);
+      presenceChannel.unsubscribe();
+    };
+  }, [state.roomId, state.gameMode, state.playerColor, state.onlineState, state.gameStatus, dispatch]);
+
   // Запрос на переигровку от текущего игрока
   const requestRematch = useCallback(async () => {
     if (!state.roomId || state.gameMode !== 'online') return;
