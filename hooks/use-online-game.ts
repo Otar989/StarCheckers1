@@ -99,8 +99,15 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
       }, (payload: { new: Room }) => {
         console.log('Room update received:', payload);
   const room = payload.new;
+        // Если партия уже завершилась по правилам (нет ходов/фигур) — показуем финал всем
+        try {
+          const statusNow = GameLogic.evaluateStatus(room.board_state as any, room.turn);
+          if (statusNow !== 'playing' && state.gameStatus === 'playing') {
+            dispatch({ type: 'SET_GAME_STATE', state: { board: room.board_state, currentPlayer: room.turn, gameStatus: statusNow } });
+          }
+        } catch {}
         
-        // Начало игры — переводим состояние и синхронизируем доску/очередь
+  // Начало игры — переводим состояние и синхронизируем доску/очередь
     if (room.status === 'playing' && state.onlineState === 'waiting') {
           console.log('Starting online game');
           dispatch({ type: 'START_ONLINE_GAME' });
@@ -117,15 +124,20 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
           return;
         }
 
-  // Обновляем состояние доски когда после хода соперника теперь наш ход
-    if (room.turn === state.playerColor) {
-          dispatch({
-            type: 'SET_GAME_STATE',
-            state: {
-              board: room.board_state,
-              currentPlayer: room.turn
-            }
-          });
+  // Обновляем состояние доски, и проверяем окончание партии синхронно на клиенте
+  if (room.turn === state.playerColor) {
+          const status = GameLogic.evaluateStatus(room.board_state as any, room.turn);
+          if (status !== 'playing') {
+            dispatch({ type: 'SET_GAME_STATE', state: { board: room.board_state, currentPlayer: room.turn, gameStatus: status } });
+          } else {
+            dispatch({
+              type: 'SET_GAME_STATE',
+              state: {
+                board: room.board_state,
+                currentPlayer: room.turn
+              }
+            });
+          }
         }
 
   // Обновления по рематчу
@@ -301,7 +313,12 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
         if (room) {
           // Если по какой-то причине подписка не донесла обновление, синхронизируемся
           if (room.turn === state.playerColor) {
-            dispatch({ type: 'SET_GAME_STATE', state: { board: room.board_state, currentPlayer: room.turn } });
+            const status = GameLogic.evaluateStatus(room.board_state as any, room.turn);
+            if (status !== 'playing') {
+              dispatch({ type: 'SET_GAME_STATE', state: { board: room.board_state, currentPlayer: room.turn, gameStatus: status } });
+            } else {
+              dispatch({ type: 'SET_GAME_STATE', state: { board: room.board_state, currentPlayer: room.turn } });
+            }
           }
         }
       } catch {

@@ -333,4 +333,12 @@ export class GameLogic {
 
     return "playing"
   }
+
+  // Публичная обёртка для вычисления статуса партии по текущей доске и игроку, чей ход следующий
+  static evaluateStatus(
+    board: (Piece | null)[][],
+    currentPlayer: "white" | "black",
+  ): "playing" | "white-wins" | "black-wins" | "draw" {
+    return this.checkGameStatus(board, currentPlayer)
+  }
 }
