@@ -26,6 +26,8 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
   const { playSound, initializeAudio } = useAudio()
   const { hapticFeedback, user, initData } = useTelegram()
   const { theme } = useTheme()
+  // Контейнер игрового экрана для блокировки системных свайпов (Telegram iOS)
+  const screenRef = useRef<HTMLDivElement | null>(null)
   const [isAIThinking, setIsAIThinking] = useState(false)
   const [dragOver, setDragOver] = useState<{ row: number; col: number } | null>(null)
   const [isProcessingMove, setIsProcessingMove] = useState(false)
@@ -34,6 +36,20 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
   const cleanupRef = useRef(false)
   const [remaining, setRemaining] = useState<number>(60)
   const { score, recordYouWin, recordOppWin, recordDraw } = useHeadToHead(state.roomId)
+
+  // Глобально блокируем скролл/свайпы в пределах игрового экрана, чтобы не мешали ходам чёрных
+  useEffect(() => {
+    const el = screenRef.current
+    if (!el) return
+    const onTouchMove = (e: TouchEvent) => e.preventDefault()
+    const onWheel = (e: WheelEvent) => e.preventDefault()
+    el.addEventListener("touchmove", onTouchMove, { passive: false })
+    el.addEventListener("wheel", onWheel, { passive: false })
+    return () => {
+      el.removeEventListener("touchmove", onTouchMove)
+      el.removeEventListener("wheel", onWheel)
+    }
+  }, [])
 
   // Онлайн: показываем свою сторону снизу. Если игрок чёрный — визуально переворачиваем поле.
   const isFlipped = state.gameMode === 'online' && state.playerColor === 'black'
@@ -325,7 +341,8 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
         <RoomCodeToast roomId={state.roomId} onClose={() => setShowRoomCode(false)} />
       )}
       <div
-        className="min-h-screen flex flex-col relative overflow-hidden bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900"
+        ref={screenRef}
+        className="min-h-screen flex flex-col relative overflow-hidden bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 overscroll-none touch-none select-none"
         style={{
           paddingTop: "max(env(safe-area-inset-top), 60px)",
           paddingBottom: "max(env(safe-area-inset-bottom), 16px)",

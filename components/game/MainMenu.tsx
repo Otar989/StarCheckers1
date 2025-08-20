@@ -119,7 +119,7 @@ export function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps) {
           100% { transform: translateY(0); }
         }
       `}</style>
-      <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+  <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       {/* Animated background elements */}
       <div className="absolute inset-0">
         {/* Floating orbs with different animation speeds */}

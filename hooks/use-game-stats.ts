@@ -43,6 +43,12 @@ export function useGameStats(userId?: number) {
     })
   }
 
+  // Сброс статистики к значениям по умолчанию
+  const resetStats = () => {
+    localStorage.setItem(storageKey, JSON.stringify(defaultStats))
+    setStats(defaultStats)
+  }
+
   // Функция обновления рейтинга
   const updateRating = (won: boolean, isDraw: boolean) => {
     const K = 32 // Коэффициент изменения рейтинга
@@ -123,6 +129,7 @@ export function useGameStats(userId?: number) {
     recordDraw,
     recordOnlineWin,
     recordOnlineLoss,
-    recordOnlineDraw
+  recordOnlineDraw,
+  resetStats
   }
 }
