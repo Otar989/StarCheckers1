@@ -310,6 +310,19 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
 
   return (
     <>
+      {/* Информация о режиме и уровне сложности над доской */}
+      <div className="w-full flex flex-col items-center justify-center mt-2 mb-4 z-20">
+        <div className="liquid-glass text-center rounded-2xl px-4 py-2 md:px-6 md:py-3 mx-auto" style={{maxWidth: '320px'}}>
+          <h2 className="font-bold text-lg md:text-xl bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+            StarCheckers
+          </h2>
+          <p className="text-sm md:text-base text-white/70">
+            {mode === "bot" && `ИИ (${difficulty === "easy" ? "Легко" : difficulty === "medium" ? "Средне" : "Сложно"})`}
+            {mode === "local" && "Локальная игра"}
+            {mode === "online" && "Онлайн"}
+          </p>
+        </div>
+      </div>
       {joinError && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-red-500 text-white px-4 py-2 rounded shadow z-50 flex items-center gap-3">
           <span>{joinError}</span>
@@ -416,7 +429,7 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
           sm:max-w-[min(85vw,75vh,450px)]
           md:max-w-[min(80vw,70vh,550px)]
           lg:max-w-[min(75vw,65vh,600px)]
-          aspect-square"
+          aspect-square mt-0"
         >
           <div className="absolute inset-0 rounded-3xl blur-3xl transform translate-y-12 scale-115 bg-black/20" />
           <div className="absolute inset-0 rounded-2xl blur-2xl transform translate-y-6 scale-110 bg-black/15" />
