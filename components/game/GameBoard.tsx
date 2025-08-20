@@ -119,6 +119,15 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
     }
   }, [cleanupGame])
 
+  // При входе на экран игры синхронизируем режим игры в контексте и сбрасываем партию
+  useEffect(() => {
+    if (mode === 'online') return
+    dispatch({ type: 'RESET_GAME', gameMode: mode })
+    setIsAIThinking(false)
+    setIsProcessingMove(false)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode])
+
   // Не вызываем leaveRoom автоматически, только по кнопке Меню
 
   useEffect(() => {
@@ -172,13 +181,14 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
   ])
 
   const handleSquareClick = async (row: number, col: number) => {
-    const isBot = state.gameMode === 'bot'
-    const isOnline = state.gameMode === 'online'
+  const isBot = mode === 'bot'
+  const isOnline = mode === 'online'
     const onlineNotReady = isOnline && state.onlineState !== 'playing'
     if (
       isAIThinking ||
       isProcessingMove ||
       state.gameStatus !== "playing" ||
+      // В режиме бота блокируем ходы пользователя, когда очередь бота (чёрные)
       (isBot && state.currentPlayer === "black") ||
       onlineNotReady ||
       (isOnline && (!state.playerColor || state.currentPlayer !== state.playerColor))
