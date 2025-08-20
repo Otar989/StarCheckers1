@@ -29,7 +29,7 @@ type TelegramUpdate = {
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || ""
 const SECRET_TOKEN = process.env.TELEGRAM_WEBHOOK_SECRET || ""
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || ""
-const WELCOME_MEDIA = process.env.TELEGRAM_WELCOME_MEDIA // e.g. "/welcome.gif" or full URL
+const WELCOME_MEDIA = process.env.TELEGRAM_WELCOME_MEDIA // e.g. "/2025-08-20 14.36.17.mp4" or full URL
 const WELCOME_MEDIA_TYPE = (process.env.TELEGRAM_WELCOME_MEDIA_TYPE || "animation").toLowerCase() as
   | "animation"
   | "photo"
@@ -106,7 +106,7 @@ export async function POST(request: Request) {
       }
 
       // Формируем URL медиа. Если задан относительный путь (начинается с / или без схемы), подставляем домен приложения.
-    const defaultPath = "/20250820_1340_Vibrant Checkers Animation_simple_compose_01k33h172wez8t29dg17ht1j00.gif"
+  const defaultPath = "/2025-08-20 14.36.17.mp4"
       const rawPath = WELCOME_MEDIA || defaultPath
       const mediaUrlRaw = rawPath.startsWith("http://") || rawPath.startsWith("https://")
         ? rawPath
@@ -115,7 +115,7 @@ export async function POST(request: Request) {
       const mediaUrl = encodeURI(mediaUrlRaw)
       const photoFallbackUrl = `${appUrl}/placeholder.jpg`
 
-      let ok = false
+  let ok = false
       if (WELCOME_MEDIA_TYPE === "photo") {
         const resp = (await callTelegram("sendPhoto", {
           chat_id: msg.chat.id,
@@ -126,7 +126,7 @@ export async function POST(request: Request) {
         })) as any
         ok = !!resp?.ok
       } else {
-        // По умолчанию пробуем отправить как анимацию (GIF/MP4). Если ошибка — фолбэк на фото.
+        // По умолчанию пробуем отправить как анимацию (MP4/GIF).
         const resp = (await callTelegram("sendAnimation", {
           chat_id: msg.chat.id,
           animation: mediaUrl,
@@ -135,6 +135,20 @@ export async function POST(request: Request) {
           reply_markup: replyMarkup,
         })) as any
         ok = !!resp?.ok
+
+        // Если основной медиа-файл недоступен (например, не лежит в public), пробуем запасной GIF.
+        if (!ok) {
+          const fallbackAnimRaw = `${appUrl}/welcome.gif`
+          const fallbackAnim = encodeURI(fallbackAnimRaw)
+          const retry = (await callTelegram("sendAnimation", {
+            chat_id: msg.chat.id,
+            animation: fallbackAnim,
+            caption: welcome,
+            parse_mode: "HTML",
+            reply_markup: replyMarkup,
+          })) as any
+          ok = !!retry?.ok
+        }
       }
 
       if (!ok) {
