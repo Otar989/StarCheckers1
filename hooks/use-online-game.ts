@@ -30,6 +30,52 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
   const rematchInProgressRef = useRef(false);
 
+  // Локальный устойчивый запуск рематча (на случай гонок обновлений)
+  const maybeStartRematch = useCallback(async (waitMs = 4000) => {
+    if (!state.roomId || rematchInProgressRef.current) return;
+    rematchInProgressRef.current = true;
+    const startedAt = Date.now();
+    try {
+      while (Date.now() - startedAt < waitMs) {
+        const { data: room } = await supabase
+          .from('rooms')
+          .select('id, rematch_white, rematch_black, rematch_until')
+          .eq('id', state.roomId)
+          .single();
+        if (!room) break;
+        const bothAgreed = Boolean((room as any).rematch_white) && Boolean((room as any).rematch_black);
+        const notExpired = !(room as any).rematch_until || new Date((room as any).rematch_until).getTime() > Date.now();
+        if (bothAgreed && notExpired) {
+          const initialBoard = GameLogic.getInitialBoard();
+          const { error } = await supabase
+            .from('rooms')
+            .update({
+              status: 'playing',
+              board_state: initialBoard,
+              turn: 'white',
+              rematch_white: false,
+              rematch_black: false,
+              rematch_until: null,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', state.roomId);
+          if (!error) {
+            // Локально сразу обновим состояние, Realtime синхронизирует вторую сторону
+            dispatch({ type: 'SET_ONLINE_STATE', payload: 'playing' });
+            dispatch({ type: 'SET_GAME_MODE', payload: 'online' });
+            dispatch({ type: 'SET_GAME_STATE', state: { board: initialBoard, currentPlayer: 'white', gameStatus: 'playing' } });
+            setRematchRequested(false);
+          }
+          break;
+        }
+        await new Promise(r => setTimeout(r, 300));
+      }
+    } catch {}
+    finally {
+      rematchInProgressRef.current = false;
+    }
+  }, [state.roomId, dispatch]);
+
   // Универсальная утилита ретраев
   const withRetry = useCallback(async <T extends { error?: unknown }>(fn: () => Promise<T>, tries = 3): Promise<T> => {
     let lastErr: unknown;
@@ -108,14 +154,16 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
           }
         } catch {}
         
-  // Начало игры — переводим состояние и синхронизируем доску/очередь
-    if (room.status === 'playing' && state.onlineState === 'waiting') {
-          console.log('Starting online game');
-          dispatch({ type: 'START_ONLINE_GAME' });
+        // Начало/перезапуск игры — переводим состояние и синхронизируем доску/очередь
+        if (room.status === 'playing' && (state.onlineState !== 'playing' || state.gameStatus !== 'playing')) {
+          console.log('Starting or restarting online game');
+          dispatch({ type: 'SET_ONLINE_STATE', payload: 'playing' });
+          dispatch({ type: 'SET_GAME_MODE', payload: 'online' });
           dispatch({
             type: 'SET_GAME_STATE',
-            state: { board: room.board_state, currentPlayer: room.turn }
+            state: { board: room.board_state, currentPlayer: room.turn, gameStatus: 'playing' }
           });
+          setRematchRequested(false);
         }
         
         // Выход противника
@@ -256,8 +304,10 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
         .update({ [column]: true, rematch_until: until })
         .eq('id', state.roomId);
       setRematchRequested(true);
+    // На всякий — дожидаемся второго игрока коротким опросом и стартуем
+    maybeStartRematch();
     } catch {}
-  }, [state.roomId, state.playerColor, state.gameMode]);
+  }, [state.roomId, state.playerColor, state.gameMode, maybeStartRematch]);
 
   const cancelRematch = useCallback(async () => {
     if (!state.roomId || state.gameMode !== 'online') return;
@@ -275,33 +325,9 @@ export function useOnlineGame(dispatch: GameDispatch, state: GameState) {
   const tryStartRematch = useCallback(async () => {
     if (!state.roomId || state.gameMode !== 'online') return;
     try {
-      const { data: room } = await supabase
-        .from('rooms')
-        .select('*')
-        .eq('id', state.roomId)
-        .single();
-      if (!room) return;
-      const bothAgreed = room.rematch_white && room.rematch_black;
-      const notExpired = !room.rematch_until || new Date(room.rematch_until).getTime() > Date.now();
-      if (bothAgreed && notExpired) {
-        const initialBoard = GameLogic.getInitialBoard();
-        await supabase
-          .from('rooms')
-          .update({
-            status: 'playing',
-            board_state: initialBoard,
-            turn: 'white',
-            rematch_white: false,
-            rematch_black: false,
-            rematch_until: null
-          })
-          .eq('id', state.roomId);
-        dispatch({ type: 'SET_ONLINE_STATE', payload: 'playing' });
-        dispatch({ type: 'SET_GAME_MODE', payload: 'online' });
-        dispatch({ type: 'SET_GAME_STATE', state: { board: initialBoard, currentPlayer: 'white' } });
-      }
+    await maybeStartRematch();
     } catch {}
-  }, [state.roomId, state.gameMode, dispatch]);
+  }, [state.roomId, state.gameMode, maybeStartRematch]);
 
   // Fallback-пуллинг: если ждём соперника, периодически проверяем статус комнаты
   useEffect(() => {
