@@ -108,9 +108,11 @@ export async function POST(request: Request) {
       // Формируем URL медиа. Если задан относительный путь (начинается с / или без схемы), подставляем домен приложения.
       const defaultPath = "/welcome.gif"
       const rawPath = WELCOME_MEDIA || defaultPath
-      const mediaUrl = rawPath.startsWith("http://") || rawPath.startsWith("https://")
+      const mediaUrlRaw = rawPath.startsWith("http://") || rawPath.startsWith("https://")
         ? rawPath
         : `${appUrl}${rawPath.startsWith("/") ? "" : "/"}${rawPath}`
+      // Encode to safely handle spaces/unicode in filenames
+      const mediaUrl = encodeURI(mediaUrlRaw)
       const photoFallbackUrl = `${appUrl}/placeholder.jpg`
 
       let ok = false
