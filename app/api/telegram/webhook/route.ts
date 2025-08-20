@@ -106,7 +106,7 @@ export async function POST(request: Request) {
       }
 
       // Формируем URL медиа. Если задан относительный путь (начинается с / или без схемы), подставляем домен приложения.
-      const defaultPath = "/welcome.gif"
+    const defaultPath = "/20250820_1340_Vibrant Checkers Animation_simple_compose_01k33h172wez8t29dg17ht1j00.gif"
       const rawPath = WELCOME_MEDIA || defaultPath
       const mediaUrlRaw = rawPath.startsWith("http://") || rawPath.startsWith("https://")
         ? rawPath
