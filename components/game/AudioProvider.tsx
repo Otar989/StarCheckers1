@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useRef, type ReactNode, useEffect, useCallback } from "react"
 
 interface AudioContextType {
-  playSound: (soundType: "move" | "capture" | "win" | "select" | "promote") => void
+  playSound: (soundType: "move" | "capture" | "win" | "select" | "promote" | "turn") => void
   toggleMusic: () => void
   toggleSounds: () => void
   isMusicEnabled: boolean
@@ -71,7 +71,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   }, [isAudioInitialized])
 
   const playSound = useCallback(
-    (soundType: "move" | "capture" | "win" | "select" | "promote") => {
+    (soundType: "move" | "capture" | "win" | "select" | "promote" | "turn") => {
       // Automatically initialize audio on first call
       if (!isAudioInitialized) {
         initializeAudio()
@@ -90,6 +90,11 @@ export function AudioProvider({ children }: { children: ReactNode }) {
           break
         case "select":
           generateTone(523, 0.05, "sine") // C5
+          break
+        case "turn":
+          // Лёгкий сигнал, что теперь ваш ход
+          generateTone(880, 0.06, "triangle") // A5
+          setTimeout(() => generateTone(988, 0.06, "triangle"), 70) // B5
           break
         case "promote":
           // Ascending melody for promotion

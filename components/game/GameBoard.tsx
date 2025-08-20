@@ -36,6 +36,7 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
   const cleanupRef = useRef(false)
   const [remaining, setRemaining] = useState<number>(60)
   const { score, recordYouWin, recordOppWin, recordDraw } = useHeadToHead(state.roomId)
+  const prevPlayerRef = useRef<typeof state.currentPlayer | null>(null)
 
   // Глобально блокируем скролл/свайпы в пределах игрового экрана, чтобы не мешали ходам чёрных
   useEffect(() => {
@@ -78,6 +79,25 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
   }, [state.gameMode, state.gameStatus, rematchDeadline, onBackToMenu])
 
   // Подключение к онлайн-игре теперь полностью обрабатывается через GameProvider/use-online-game.
+
+  // Звук смены хода: когда право хода перешло к пользователю
+  useEffect(() => {
+    const prev = prevPlayerRef.current
+    const curr = state.currentPlayer
+    prevPlayerRef.current = curr
+    if (state.gameStatus !== 'playing') return
+    // В онлайне сигналим, только если теперь ход нашего игрока
+    if (mode === 'online') {
+      if (state.playerColor && curr === state.playerColor) {
+        playSound('turn')
+      }
+    } else {
+      // В локальном/боте – после каждого завершения хода (кроме старта)
+      if (prev && prev !== curr) {
+        playSound('turn')
+      }
+    }
+  }, [state.currentPlayer, state.gameStatus, mode, state.playerColor, playSound])
 
   // Поп‑ап завершения партии отображается ниже; отдельный баннер «Opponent disconnected» удалён
   // Обновляем H2H после завершения партии
