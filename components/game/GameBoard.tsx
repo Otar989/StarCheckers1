@@ -33,6 +33,15 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
   const cleanupRef = useRef(false)
   const [remaining, setRemaining] = useState<number>(60)
 
+  // Онлайн: показываем свою сторону снизу. Если игрок чёрный — визуально переворачиваем поле.
+  const isFlipped = state.gameMode === 'online' && state.playerColor === 'black'
+  const toModel = useCallback((pos: Position): Position => (
+    isFlipped ? { row: 7 - pos.row, col: 7 - pos.col } : pos
+  ), [isFlipped])
+  const toDisplay = useCallback((pos: Position): Position => (
+    isFlipped ? { row: 7 - pos.row, col: 7 - pos.col } : pos
+  ), [isFlipped])
+
   // Таймер для окна рематча
   useEffect(() => {
     if (state.gameMode !== 'online') return;
@@ -145,8 +154,10 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
 
     initializeAudio()
 
-    const position: Position = { row, col }
-    const piece = state.board[row][col]
+  // Экранные координаты -> модель
+  const displayPos: Position = { row, col }
+  const position: Position = toModel(displayPos)
+  const piece = state.board[position.row][position.col]
 
     hapticFeedback("light")
 
@@ -174,7 +185,7 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
       return
     }
 
-    const isValidMove = state.validMoves.some((move) => move.row === row && move.col === col)
+  const isValidMove = state.validMoves.some((move) => move.row === position.row && move.col === position.col)
 
     if (isValidMove && state.selectedPiece) {
       setIsProcessingMove(true)
@@ -269,11 +280,14 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
   }
 
   const isValidMoveSquare = (row: number, col: number) => {
-    return state.validMoves.some((move) => move.row === row && move.col === col)
+    const modelPos = toModel({ row, col })
+    return state.validMoves.some((move) => move.row === modelPos.row && move.col === modelPos.col)
   }
 
   const isSelectedSquare = (row: number, col: number) => {
-    return state.selectedPiece?.position.row === row && state.selectedPiece?.position.col === col
+    if (!state.selectedPiece) return false
+    const displayPos = toDisplay(state.selectedPiece.position)
+    return displayPos.row === row && displayPos.col === col
   }
 
   return (
@@ -440,22 +454,26 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
                   boxShadow: "inset 0 2px 4px rgba(0, 0, 0, 0.1)",
                 }}
               >
-                {state.board.map((row, rowIndex) =>
-                  row.map((piece, colIndex) => (
-                    <BoardSquare
-                      key={`${rowIndex}-${colIndex}`}
-                      row={rowIndex}
-                      col={colIndex}
-                      piece={piece}
-                      isSelected={isSelectedSquare(rowIndex, colIndex)}
-                      isValidMove={isValidMoveSquare(rowIndex, colIndex)}
-                      onClick={() => handleSquareClick(rowIndex, colIndex)}
-                      onDragStart={handleDragStart}
-                      onDragOver={handleDragOver}
-                      onDrop={handleDrop}
-                      isDragTarget={dragOver?.row === rowIndex && dragOver?.col === colIndex}
-                    />
-                  )),
+                {Array.from({ length: 8 }, (_, r) => r).map((rowIndex) =>
+                  Array.from({ length: 8 }, (_, c) => c).map((colIndex) => {
+                    const model = toModel({ row: rowIndex, col: colIndex })
+                    const piece = state.board[model.row][model.col]
+                    return (
+                      <BoardSquare
+                        key={`${rowIndex}-${colIndex}`}
+                        row={rowIndex}
+                        col={colIndex}
+                        piece={piece}
+                        isSelected={isSelectedSquare(rowIndex, colIndex)}
+                        isValidMove={isValidMoveSquare(rowIndex, colIndex)}
+                        onClick={() => handleSquareClick(rowIndex, colIndex)}
+                        onDragStart={handleDragStart}
+                        onDragOver={handleDragOver}
+                        onDrop={handleDrop}
+                        isDragTarget={dragOver?.row === rowIndex && dragOver?.col === colIndex}
+                      />
+                    )
+                  }),
                 )}
               </div>
             </div>
