@@ -171,7 +171,16 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
             const moveResult = GameLogic.makeMove(state.board, aiMove.from, aiMove.to)
 
             if (moveResult.success && moveResult.newState) {
-              dispatch({ type: "SET_GAME_STATE", state: moveResult.newState })
+              dispatch({
+                type: "SET_GAME_STATE",
+                state: {
+                  ...moveResult.newState,
+                  capturedPieces: [
+                    ...state.capturedPieces,
+                    ...(moveResult.newState.capturedPieces || [])
+                  ]
+                }
+              })
               playSound(moveResult.capturedPieces.length > 0 ? "capture" : "move")
               hapticFeedback(moveResult.capturedPieces.length > 0 ? "medium" : "light")
 
@@ -272,11 +281,29 @@ export function GameBoard({ mode, difficulty, roomCode, onBackToMenu }: GameBoar
         } else {
           // Локальные режимы: применяем ход сразу
           if (moveResult.hasMoreCaptures) {
-            dispatch({ type: "SET_GAME_STATE", state: moveResult.newState! })
+            dispatch({
+              type: "SET_GAME_STATE",
+              state: {
+                ...moveResult.newState!,
+                capturedPieces: [
+                  ...state.capturedPieces,
+                  ...(moveResult.newState?.capturedPieces || [])
+                ]
+              }
+            })
           } else {
             dispatch({ type: "SELECT_PIECE", piece: null })
             dispatch({ type: "SET_VALID_MOVES", moves: [] })
-            dispatch({ type: "SET_GAME_STATE", state: moveResult.newState! })
+            dispatch({
+              type: "SET_GAME_STATE",
+              state: {
+                ...moveResult.newState!,
+                capturedPieces: [
+                  ...state.capturedPieces,
+                  ...(moveResult.newState?.capturedPieces || [])
+                ]
+              }
+            })
           }
 
           playSound(moveResult.capturedPieces.length > 0 ? "capture" : "move")

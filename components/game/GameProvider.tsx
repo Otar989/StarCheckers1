@@ -89,9 +89,11 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     case 'MOVE_PIECE': {
       const moveResult = GameLogic.makeMove(state.board, action.from, action.to);
       if (moveResult.success && moveResult.newState) {
+        // Накопление всех взятых фигур за партию
         return {
           ...state,
           ...moveResult.newState,
+          capturedPieces: [...state.capturedPieces, ...(moveResult.newState.capturedPieces || [])],
           selectedPiece: null,
           validMoves: [],
         };
@@ -136,6 +138,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         return {
           ...state,
           ...moveResult.newState,
+          capturedPieces: [...state.capturedPieces, ...(moveResult.newState.capturedPieces || [])],
           moveHistory: [...state.moveHistory, move],
         };
       }
@@ -169,6 +172,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         return {
           ...state,
           ...moveResult.newState,
+          capturedPieces: [...state.capturedPieces, ...(moveResult.newState.capturedPieces || [])],
           moveHistory: [...state.moveHistory, move],
         };
       }
